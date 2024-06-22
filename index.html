@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reproductor de Audio</title>
+</head>
+<body>
+    <audio id="audioPlayer" controls autoplay>
+        <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
+        Tu navegador no soporta el elemento de audio.
+    </audio>
+
+    <script>
+        const audioPlayer = document.getElementById('audioPlayer');
+        audioPlayer.autoplay = true;
+
+        audioPlayer.onerror = function() {
+            audioPlayer.src = 'AEROSUR.mp3';
+            audioPlayer.play();
+        };
+    </script>
+</body>
+</html>
