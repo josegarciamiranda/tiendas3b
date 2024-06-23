@@ -19,49 +19,55 @@
         const checkInternet = async () => {
             try {
                 const response = await fetch(streamURL, { method: 'HEAD' });
-                if (response.ok && isPlayingLocal) {
+                if (response.ok) {
+                    console.log('Internet disponible, reproduciendo transmisión en vivo.');
                     switchToStream();
-                } else if (!response.ok) {
+                } else {
+                    console.log('Internet no disponible, cambiando a archivo local.');
                     switchToLocalFile();
                 }
             } catch (error) {
+                console.log('Error en la verificación de Internet, cambiando a archivo local.');
                 switchToLocalFile();
             }
         };
 
         const switchToStream = () => {
             if (isPlayingLocal) {
+                console.log('Cambiando a la transmisión en vivo.');
                 audioPlayer.pause();
                 audioPlayer.src = streamURL;
                 audioPlayer.play().then(() => {
-                    console.log('Switched to stream.');
+                    console.log('Transmisión en vivo reproducida.');
+                    isPlayingLocal = false;
                 }).catch(error => {
-                    console.log('Autoplay error: ', error);
+                    console.log('Error al reproducir la transmisión en vivo: ', error);
                 });
-                isPlayingLocal = false;
             }
         };
 
         const switchToLocalFile = () => {
             if (!isPlayingLocal) {
+                console.log('Cambiando al archivo local.');
                 audioPlayer.pause();
                 audioPlayer.src = localURL;
                 audioPlayer.play().then(() => {
-                    console.log('Switched to local file.');
+                    console.log('Archivo local reproducido.');
+                    isPlayingLocal = true;
                 }).catch(error => {
-                    console.log('Autoplay error: ', error);
+                    console.log('Error al reproducir el archivo local: ', error);
                 });
-                isPlayingLocal = true;
             }
         };
 
         // Inicializa con el stream en vivo y revisa la conexión cada 10 segundos
         window.addEventListener('load', () => {
+            console.log('Página cargada, reproduciendo transmisión en vivo.');
             audioPlayer.src = streamURL;
             audioPlayer.play().then(() => {
-                console.log('Playing stream.');
+                console.log('Transmisión en vivo reproducida.');
             }).catch(error => {
-                console.log('Autoplay error: ', error);
+                console.log('Error al iniciar la transmisión en vivo: ', error);
             });
             checkInternet();
             setInterval(checkInternet, 10000);
@@ -70,6 +76,7 @@
         // Si hay un error en la reproducción, intenta cambiar al archivo local
         audioPlayer.addEventListener('error', () => {
             if (!isPlayingLocal) {
+                console.log('Error en la reproducción de la transmisión, cambiando al archivo local.');
                 switchToLocalFile();
             }
         });
