@@ -13,17 +13,15 @@
     <script>
         const audioPlayer = document.getElementById('audioPlayer');
         const streamURL = 'https://c26.radioboss.fm:8581/stream';
-        const localURL = 'https://tu-nombre-de-usuario.github.io/tu-repositorio/AEROSUR.mp3';
+        const localURL = 'https://josegarciamiranda.github.io/tiendas3b/AEROSUR.mp3';
         let isPlayingLocal = false;
 
         const checkInternet = async () => {
             try {
                 const response = await fetch(streamURL, { method: 'HEAD' });
-                if (response.ok) {
-                    if (isPlayingLocal) {
-                        switchToStream();
-                    }
-                } else {
+                if (response.ok && isPlayingLocal) {
+                    switchToStream();
+                } else if (!response.ok) {
                     switchToLocalFile();
                 }
             } catch (error) {
@@ -32,37 +30,45 @@
         };
 
         const switchToStream = () => {
-            audioPlayer.pause();
-            audioPlayer.src = streamURL;
-            audioPlayer.play().catch(error => {
-                console.log('Autoplay error: ', error);
-            });
-            isPlayingLocal = false;
+            if (isPlayingLocal) {
+                audioPlayer.pause();
+                audioPlayer.src = streamURL;
+                audioPlayer.play().then(() => {
+                    console.log('Switched to stream.');
+                }).catch(error => {
+                    console.log('Autoplay error: ', error);
+                });
+                isPlayingLocal = false;
+            }
         };
 
         const switchToLocalFile = () => {
-            audioPlayer.pause();
-            audioPlayer.src = localURL;
-            audioPlayer.play().catch(error => {
-                console.log('Autoplay error: ', error);
-            });
-            isPlayingLocal = true;
+            if (!isPlayingLocal) {
+                audioPlayer.pause();
+                audioPlayer.src = localURL;
+                audioPlayer.play().then(() => {
+                    console.log('Switched to local file.');
+                }).catch(error => {
+                    console.log('Autoplay error: ', error);
+                });
+                isPlayingLocal = true;
+            }
         };
 
-        // Revisa la conexión a internet cada 10 segundos
-        setInterval(checkInternet, 10000);
-
-        // Inicialmente revisa la conexión al cargar la página y reproduce el audio
+        // Inicializa con el stream en vivo y revisa la conexión cada 10 segundos
         window.addEventListener('load', () => {
             audioPlayer.src = streamURL;
-            audioPlayer.play().catch(error => {
+            audioPlayer.play().then(() => {
+                console.log('Playing stream.');
+            }).catch(error => {
                 console.log('Autoplay error: ', error);
             });
             checkInternet();
+            setInterval(checkInternet, 10000);
         });
 
-        // Asegura que el audio se pausa antes de cambiar la fuente
-        audioPlayer.addEventListener('error', (event) => {
+        // Si hay un error en la reproducción, intenta cambiar al archivo local
+        audioPlayer.addEventListener('error', () => {
             if (!isPlayingLocal) {
                 switchToLocalFile();
             }
