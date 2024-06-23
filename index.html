@@ -6,31 +6,29 @@
     <title>Reproductor de Audio</title>
 </head>
 <body>
-    <audio id="streamPlayer" controls autoplay>
-        <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
-        Tu navegador no soporta el elemento de audio.
-    </audio>
-    <audio id="localPlayer" controls style="display:none;">
-        <source src="https://tu-nombre-de-usuario.github.io/tu-repositorio/AEROSUR.mp3" type="audio/mpeg">
+    <audio id="audioPlayer" controls autoplay>
+        <source id="streamSource" src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
         Tu navegador no soporta el elemento de audio.
     </audio>
 
     <script>
-        const streamPlayer = document.getElementById('streamPlayer');
-        const localPlayer = document.getElementById('localPlayer');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const streamSource = document.getElementById('streamSource');
+        const localSource = 'https://tu-nombre-de-usuario.github.io/tu-repositorio/AEROSUR.mp3';
+        let isPlayingLocal = false;
 
         const checkInternet = () => {
             fetch('https://c26.radioboss.fm:8581/stream', { method: 'HEAD' })
                 .then((response) => {
                     if (response.ok) {
                         // Conexión a internet está activa
-                        if (localPlayer.style.display !== 'none') {
-                            localPlayer.pause();
-                            localPlayer.style.display = 'none';
-                            streamPlayer.style.display = 'block';
-                            streamPlayer.play().catch(error => {
+                        if (audioPlayer.src !== streamSource.src) {
+                            audioPlayer.pause();
+                            audioPlayer.src = streamSource.src;
+                            audioPlayer.play().catch(error => {
                                 console.log('Autoplay error: ', error);
                             });
+                            isPlayingLocal = false;
                         }
                     } else {
                         // Sin conexión a internet o stream no disponible
@@ -44,13 +42,13 @@
         };
 
         const switchToLocalFile = () => {
-            if (streamPlayer.style.display !== 'none') {
-                streamPlayer.pause();
-                streamPlayer.style.display = 'none';
-                localPlayer.style.display = 'block';
-                localPlayer.play().catch(error => {
+            if (!isPlayingLocal) {
+                audioPlayer.pause();
+                audioPlayer.src = localSource;
+                audioPlayer.play().catch(error => {
                     console.log('Autoplay error: ', error);
                 });
+                isPlayingLocal = true;
             }
         };
 
@@ -60,7 +58,7 @@
         // Inicialmente revisa la conexión al cargar la página y reproduce el audio
         window.addEventListener('load', () => {
             checkInternet();
-            streamPlayer.play().catch(error => {
+            audioPlayer.play().catch(error => {
                 console.log('Autoplay error: ', error);
             });
         });
