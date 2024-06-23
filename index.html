@@ -13,10 +13,11 @@
         const liveStreamURL = "https://c26.radioboss.fm:8581/stream";
         const localFile = "AEROSUR1.mp3";
         const audioPlayer = document.getElementById('audioPlayer');
-        
+
         let isLive = true;
 
         function loadLiveStream() {
+            isLive = true;
             audioPlayer.src = liveStreamURL;
             audioPlayer.play().catch(() => {
                 console.log("Error al reproducir la transmisión en vivo, intentando archivo local.");
@@ -50,7 +51,6 @@
             fetch(liveStreamURL, { method: 'HEAD', mode: 'no-cors' }).then(() => {
                 if (!isLive) {
                     console.log("Conexión restablecida, cambiando a la transmisión en vivo.");
-                    isLive = true;
                     loadLiveStream();
                 }
             }).catch(() => {
@@ -62,6 +62,31 @@
         }
 
         setInterval(checkConnection, 5000);
+
+        // Event listener to restart playback if paused for any reason
+        audioPlayer.addEventListener('pause', () => {
+            if (isLive && navigator.onLine) {
+                console.log("La transmisión en vivo se pausó, reintentando la reproducción.");
+                loadLiveStream();
+            } else if (!isLive) {
+                console.log("El archivo local se pausó, reintentando la reproducción.");
+                loadBackup();
+            }
+        });
+
+        window.addEventListener('online', () => {
+            console.log("Conexión a internet restablecida.");
+            if (!isLive) {
+                loadLiveStream();
+            }
+        });
+
+        window.addEventListener('offline', () => {
+            console.log("Conexión a internet perdida.");
+            if (isLive) {
+                loadBackup();
+            }
+        });
 
         loadLiveStream();
     </script>
