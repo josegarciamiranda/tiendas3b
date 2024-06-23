@@ -1,23 +1,66 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reproductor de Audio</title>
 </head>
 <body>
     <audio id="audioPlayer" controls autoplay>
-        <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
+        <source id="streamSource" src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
         Tu navegador no soporta el elemento de audio.
     </audio>
 
     <script>
         const audioPlayer = document.getElementById('audioPlayer');
-        audioPlayer.autoplay = true;
+        const streamSource = document.getElementById('streamSource');
+        const localSource = 'AEROSUR.mp3';
+        let isPlayingLocal = false;
 
-        audioPlayer.onerror = function() {
-            audioPlayer.src = 'AEROSUR.mp3';
-            audioPlayer.play();
+        const checkInternet = () => {
+            fetch('https://c26.radioboss.fm:8581/stream', { method: 'HEAD' })
+                .then((response) => {
+                    if (response.ok) {
+                        // Conexión a internet está activa
+                        if (audioPlayer.src !== streamSource.src) {
+                            audioPlayer.src = streamSource.src;
+                            audioPlayer.play().catch(error => {
+                                console.log('Autoplay error: ', error);
+                            });
+                            isPlayingLocal = false;
+                        }
+                    } else {
+                        // Sin conexión a internet o stream no disponible
+                        switchToLocalFile();
+                    }
+                })
+                .catch(() => {
+                    // Sin conexión a internet
+                    switchToLocalFile();
+                });
         };
+
+        const switchToLocalFile = () => {
+            if (!isPlayingLocal) {
+                audioPlayer.src = localSource;
+                audioPlayer.play().catch(error => {
+                    console.log('Autoplay error: ', error);
+                });
+                isPlayingLocal = true;
+            }
+        };
+
+        // Revisa la conexión a internet cada 10 segundos
+        setInterval(checkInternet, 10000);
+
+        // Inicialmente revisa la conexión al cargar la página y reproduce el audio
+        window.addEventListener('load', () => {
+            checkInternet();
+            audioPlayer.play().catch(error => {
+                console.log('Autoplay error: ', error);
+            });
+        });
     </script>
 </body>
 </html>
+
