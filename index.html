@@ -3,64 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reproductor de Audio</title>
+    <title>Reproductor de Radio en Vivo</title>
 </head>
 <body>
-    <audio id="audioPlayer" controls>
-        Tu navegador no soporta el elemento de audio.
-    </audio>
+    <h1>Reproductor de Radio en Vivo</h1>
+    <audio id="audioPlayer" controls></audio>
 
     <script>
+        const liveStreamURL = "https://c26.radioboss.fm:8581/stream";
+        const localFile = "AEROSUR.mp3";
         const audioPlayer = document.getElementById('audioPlayer');
-        const streamURL = 'https://c26.radioboss.fm:8581/stream';
-        const localURL = './AEROSUR.mp3';  // Ajusta la ruta según la ubicación real del archivo en tu repositorio
+        
+        let isLive = true; // Para rastrear si se está intentando reproducir la transmisión en vivo
 
-        let currentSource = null;
+        function loadLiveStream() {
+            audioPlayer.src = liveStreamURL;
+            audioPlayer.play().catch(() => {
+                console.log("Error al reproducir la transmisión en vivo, intentando archivo local.");
+                loadBackup();
+            });
+        }
 
-        // Función para cambiar la fuente de audio y reproducir
-        const switchAudioSource = (source) => {
-            if (source !== currentSource) {
-                currentSource = source;
-                audioPlayer.src = source;
-                audioPlayer.load(); // Cargar el nuevo origen
-                audioPlayer.play().then(() => {
-                    console.log(`Reproduciendo ${source}`);
-                }).catch(error => {
-                    console.log(`Error al reproducir ${source}:`, error);
-                });
-            }
-        };
+        function loadBackup() {
+            isLive = false;
+            audioPlayer.src = localFile;
+            audioPlayer.play().catch((error) => {
+                console.error("Error al reproducir el archivo local:", error);
+            });
+        }
 
-        // Función para verificar y cambiar entre transmisión en vivo y archivo local
-        const checkAndSwitch = () => {
-            fetch(streamURL, { method: 'HEAD' })
-                .then(response => {
-                    if (response.ok) {
-                        switchAudioSource(streamURL); // Cambiar a la transmisión en vivo si está disponible
-                    } else {
-                        switchAudioSource(localURL); // Cambiar al archivo local si la transmisión en vivo no está disponible
-                    }
-                })
-                .catch(error => {
-                    console.log('Error al verificar la conexión:', error);
-                    switchAudioSource(localURL); // En caso de error, cambiar al archivo local
-                });
-        };
-
-        // Inicialización al cargar la página
-        window.addEventListener('load', () => {
-            console.log('Página cargada, verificando conexión inicial.');
-            checkAndSwitch();
-            setInterval(checkAndSwitch, 8000); // Verificar cada 8 segundos
-        });
-
-        // Evento de error en la reproducción
         audioPlayer.addEventListener('error', () => {
-            console.log(`Error en la reproducción de ${currentSource}, cambiando la fuente.`);
-            if (currentSource === streamURL) {
-                switchAudioSource(localURL); // Cambiar al archivo local si hay un error en la transmisión en vivo
+            if (isLive) {
+                console.log("Error al reproducir la transmisión en vivo, cambiando al archivo local.");
+                loadBackup();
             }
         });
+
+        audioPlayer.addEventListener('ended', () => {
+            if (!isLive) {
+                console.log("Archivo local finalizado, intentando nuevamente la transmisión en vivo.");
+                loadLiveStream();
+            }
+        });
+
+        function checkConnection() {
+            fetch(liveStreamURL, { method: 'HEAD', mode: 'no-cors' }).then(() => {
+                if (!isLive) {
+                    console.log("Conexión restablecida, cambiando a la transmisión en vivo.");
+                    isLive = true;
+                    loadLiveStream();
+                }
+            }).catch(() => {
+                console.log("No se pudo establecer conexión con la transmisión en vivo.");
+                if (isLive) {
+                    loadBackup();
+                }
+            });
+        }
+
+        setInterval(checkConnection, 5000); // Verifica la conexión cada 5 segundos
+
+        loadLiveStream(); // Inicia con la transmisión en vivo
     </script>
 </body>
 </html>
