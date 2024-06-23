@@ -15,7 +15,6 @@
         const streamURL = 'https://c26.radioboss.fm:8581/stream';
         const localURL = './AEROSUR.mp3';  // Ajusta la ruta según la ubicación real del archivo en tu repositorio
         let isPlayingLocal = false;
-        let currentSource = '';
 
         const checkInternet = async () => {
             try {
@@ -39,11 +38,9 @@
 
         const switchToStream = () => {
             console.log('Cambiando a la transmisión en vivo.');
-            if (currentSource !== streamURL) {
-                audioPlayer.src = streamURL;
-                audioPlayer.load();
-                currentSource = streamURL;
-            }
+            audioPlayer.pause();
+            audioPlayer.src = streamURL;
+            audioPlayer.load();
             audioPlayer.play().then(() => {
                 console.log('Transmisión en vivo reproducida.');
                 isPlayingLocal = false;
@@ -54,11 +51,9 @@
 
         const switchToLocalFile = () => {
             console.log('Cambiando al archivo local.');
-            if (currentSource !== localURL) {
-                audioPlayer.src = localURL;
-                audioPlayer.load();
-                currentSource = localURL;
-            }
+            audioPlayer.pause();
+            audioPlayer.src = localURL;
+            audioPlayer.load();
             audioPlayer.play().then(() => {
                 console.log('Archivo local reproducido.');
                 isPlayingLocal = true;
