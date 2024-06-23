@@ -6,56 +6,44 @@
     <title>Reproductor de Audio</title>
 </head>
 <body>
-    <button id="playButton">Iniciar Reproducción</button>
-    <audio id="audioPlayer" controls style="display:none;">
-        <source id="streamSource" src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
+    <audio id="audioPlayer" controls>
         Tu navegador no soporta el elemento de audio.
     </audio>
 
     <script>
-        const playButton = document.getElementById('playButton');
         const audioPlayer = document.getElementById('audioPlayer');
-        const streamSource = document.getElementById('streamSource');
-        const localSource = 'https://tu-nombre-de-usuario.github.io/tu-repositorio/AEROSUR.mp3';
+        const streamURL = 'https://c26.radioboss.fm:8581/stream';
+        const localURL = 'https://tu-nombre-de-usuario.github.io/tu-repositorio/AEROSUR.mp3';
         let isPlayingLocal = false;
 
-        playButton.addEventListener('click', () => {
-            playButton.style.display = 'none';
-            audioPlayer.style.display = 'block';
-            checkInternet();
-            audioPlayer.play().catch(error => {
-                console.log('Autoplay error: ', error);
-            });
-        });
-
-        const checkInternet = () => {
-            fetch('https://c26.radioboss.fm:8581/stream', { method: 'HEAD' })
-                .then((response) => {
-                    if (response.ok) {
-                        // Conexión a internet está activa
-                        if (audioPlayer.src !== streamSource.src) {
-                            audioPlayer.pause();
-                            audioPlayer.src = streamSource.src;
-                            audioPlayer.play().catch(error => {
-                                console.log('Autoplay error: ', error);
-                            });
-                            isPlayingLocal = false;
-                        }
-                    } else {
-                        // Sin conexión a internet o stream no disponible
-                        switchToLocalFile();
-                    }
-                })
-                .catch(() => {
-                    // Sin conexión a internet
+        const checkInternet = async () => {
+            try {
+                const response = await fetch(streamURL, { method: 'HEAD' });
+                if (response.ok) {
+                    switchToStream();
+                } else {
                     switchToLocalFile();
+                }
+            } catch (error) {
+                switchToLocalFile();
+            }
+        };
+
+        const switchToStream = () => {
+            if (isPlayingLocal) {
+                audioPlayer.pause();
+                audioPlayer.src = streamURL;
+                audioPlayer.play().catch(error => {
+                    console.log('Autoplay error: ', error);
                 });
+                isPlayingLocal = false;
+            }
         };
 
         const switchToLocalFile = () => {
             if (!isPlayingLocal) {
                 audioPlayer.pause();
-                audioPlayer.src = localSource;
+                audioPlayer.src = localURL;
                 audioPlayer.play().catch(error => {
                     console.log('Autoplay error: ', error);
                 });
@@ -68,11 +56,13 @@
 
         // Inicialmente revisa la conexión al cargar la página y reproduce el audio
         window.addEventListener('load', () => {
-            if (playButton.style.display === 'none') {
-                checkInternet();
-                audioPlayer.play().catch(error => {
-                    console.log('Autoplay error: ', error);
-                });
+            checkInternet();
+        });
+
+        // Asegura que el audio se pausa antes de cambiar la fuente
+        audioPlayer.addEventListener('error', (event) => {
+            if (!isPlayingLocal) {
+                switchToLocalFile();
             }
         });
     </script>
