@@ -13,71 +13,90 @@
     <script>
         const audioPlayer = document.getElementById('audioPlayer');
         const streamURL = 'https://c26.radioboss.fm:8581/stream';
-        const localURL = 'https://josegarciamiranda.github.io/tiendas3b/AEROSUR.mp3';
+        const localURL = 'AEROSUR.mp3';  // Nombre del archivo local en el mismo directorio que este HTML
         let isPlayingLocal = false;
+        let currentSource = '';
 
         const checkInternet = async () => {
             try {
                 const response = await fetch(streamURL, { method: 'HEAD' });
                 if (response.ok) {
-                    console.log('Internet disponible, reproduciendo transmisión en vivo.');
-                    switchToStream();
+                    console.log('Transmisión en vivo disponible.');
+                    if (!audioPlayer.paused && audioPlayer.src === streamURL) {
+                        console.log('El audio ya está reproduciendo la transmisión en vivo.');
+                    } else {
+                        switchToStream();
+                    }
                 } else {
-                    console.log('Internet no disponible, cambiando a archivo local.');
+                    console.log('Transmisión en vivo no disponible, cambiando a archivo local.');
                     switchToLocalFile();
                 }
             } catch (error) {
-                console.log('Error en la verificación de Internet, cambiando a archivo local.');
+                console.log('Error al verificar la conexión, cambiando a archivo local.');
                 switchToLocalFile();
             }
         };
 
         const switchToStream = () => {
-            if (isPlayingLocal) {
-                console.log('Cambiando a la transmisión en vivo.');
-                audioPlayer.pause();
+            console.log('Cambiando a la transmisión en vivo.');
+            if (currentSource !== streamURL) {
                 audioPlayer.src = streamURL;
-                audioPlayer.play().then(() => {
-                    console.log('Transmisión en vivo reproducida.');
-                    isPlayingLocal = false;
-                }).catch(error => {
-                    console.log('Error al reproducir la transmisión en vivo: ', error);
-                });
+                audioPlayer.load();
+                currentSource = streamURL;
             }
+            audioPlayer.play().then(() => {
+                console.log('Transmisión en vivo reproducida.');
+                isPlayingLocal = false;
+            }).catch(error => {
+                console.log('Error al reproducir la transmisión en vivo:', error);
+            });
         };
 
         const switchToLocalFile = () => {
-            if (!isPlayingLocal) {
-                console.log('Cambiando al archivo local.');
-                audioPlayer.pause();
+            console.log('Cambiando al archivo local.');
+            if (currentSource !== localURL) {
                 audioPlayer.src = localURL;
-                audioPlayer.play().then(() => {
-                    console.log('Archivo local reproducido.');
-                    isPlayingLocal = true;
-                }).catch(error => {
-                    console.log('Error al reproducir el archivo local: ', error);
-                });
+                audioPlayer.load();
+                currentSource = localURL;
             }
+            audioPlayer.play().then(() => {
+                console.log('Archivo local reproducido.');
+                isPlayingLocal = true;
+            }).catch(error => {
+                console.log('Error al reproducir el archivo local:', error);
+            });
         };
 
-        // Inicializa con el stream en vivo y revisa la conexión cada 10 segundos
+        // Función para manejar cambios en la conexión cada 10 segundos
+        setInterval(checkInternet, 10000);
+
+        // Inicialización al cargar la página
         window.addEventListener('load', () => {
-            console.log('Página cargada, reproduciendo transmisión en vivo.');
-            audioPlayer.src = streamURL;
-            audioPlayer.play().then(() => {
-                console.log('Transmisión en vivo reproducida.');
-            }).catch(error => {
-                console.log('Error al iniciar la transmisión en vivo: ', error);
-            });
+            console.log('Página cargada, verificando conexión inicial.');
             checkInternet();
-            setInterval(checkInternet, 10000);
         });
 
-        // Si hay un error en la reproducción, intenta cambiar al archivo local
+        // Evento de error en la reproducción, intentar cambiar al archivo local si no está reproduciendo localmente
         audioPlayer.addEventListener('error', () => {
             if (!isPlayingLocal) {
                 console.log('Error en la reproducción de la transmisión, cambiando al archivo local.');
                 switchToLocalFile();
+            }
+        });
+
+        // Evento de pausa, intentar volver a conectar la transmisión en vivo si está reproduciendo localmente
+        audioPlayer.addEventListener('pause', () => {
+            if (isPlayingLocal) {
+                console.log('Audio en pausa, intentando volver a conectar la transmisión en vivo.');
+                switchToStream();
+            }
+        });
+
+        // Evitar la pausa automática del reproductor al cambiar la fuente de audio
+        audioPlayer.addEventListener('timeupdate', () => {
+            if (audioPlayer.paused && audioPlayer.currentTime > 0 && audioPlayer.src === streamURL) {
+                console.log('Reiniciando la transmisión en vivo.');
+                audioPlayer.play();
             }
         });
     </script>
