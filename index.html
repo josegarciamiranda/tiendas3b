@@ -14,7 +14,7 @@
         const localFile = "AEROSUR.mp3";
         const audioPlayer = document.getElementById('audioPlayer');
         
-        let isLive = true; // Para rastrear si se está intentando reproducir la transmisión en vivo
+        let isLive = true;
 
         function loadLiveStream() {
             audioPlayer.src = liveStreamURL;
@@ -61,9 +61,9 @@
             });
         }
 
-        setInterval(checkConnection, 5000); // Verifica la conexión cada 5 segundos
+        setInterval(checkConnection, 5000);
 
-        loadLiveStream(); // Inicia con la transmisión en vivo
+        loadLiveStream();
     </script>
 </body>
 </html>
