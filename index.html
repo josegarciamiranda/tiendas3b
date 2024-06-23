@@ -14,84 +14,51 @@
         const audioPlayer = document.getElementById('audioPlayer');
         const streamURL = 'https://c26.radioboss.fm:8581/stream';
         const localURL = './AEROSUR.mp3';  // Ajusta la ruta según la ubicación real del archivo en tu repositorio
-        let isPlayingLocal = false;
 
-        const checkInternet = async () => {
-            try {
-                const response = await fetch(streamURL, { method: 'HEAD' });
-                if (response.ok) {
-                    console.log('Transmisión en vivo disponible.');
-                    if (!audioPlayer.paused && audioPlayer.src === streamURL) {
-                        console.log('El audio ya está reproduciendo la transmisión en vivo.');
-                    } else {
-                        switchToStream();
-                    }
-                } else {
-                    console.log('Transmisión en vivo no disponible, cambiando a archivo local.');
-                    switchToLocalFile();
-                }
-            } catch (error) {
-                console.log('Error al verificar la conexión, cambiando a archivo local.');
-                switchToLocalFile();
+        let currentSource = null;
+
+        // Función para cambiar la fuente de audio y reproducir
+        const switchAudioSource = (source) => {
+            if (source !== currentSource) {
+                currentSource = source;
+                audioPlayer.src = source;
+                audioPlayer.load(); // Cargar el nuevo origen
+                audioPlayer.play().then(() => {
+                    console.log(`Reproduciendo ${source}`);
+                }).catch(error => {
+                    console.log(`Error al reproducir ${source}:`, error);
+                });
             }
         };
 
-        const switchToStream = () => {
-            console.log('Cambiando a la transmisión en vivo.');
-            audioPlayer.pause();
-            audioPlayer.src = streamURL;
-            audioPlayer.load();
-            audioPlayer.play().then(() => {
-                console.log('Transmisión en vivo reproducida.');
-                isPlayingLocal = false;
-            }).catch(error => {
-                console.log('Error al reproducir la transmisión en vivo:', error);
-            });
+        // Función para verificar y cambiar entre transmisión en vivo y archivo local
+        const checkAndSwitch = () => {
+            fetch(streamURL, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        switchAudioSource(streamURL); // Cambiar a la transmisión en vivo si está disponible
+                    } else {
+                        switchAudioSource(localURL); // Cambiar al archivo local si la transmisión en vivo no está disponible
+                    }
+                })
+                .catch(error => {
+                    console.log('Error al verificar la conexión:', error);
+                    switchAudioSource(localURL); // En caso de error, cambiar al archivo local
+                });
         };
-
-        const switchToLocalFile = () => {
-            console.log('Cambiando al archivo local.');
-            audioPlayer.pause();
-            audioPlayer.src = localURL;
-            audioPlayer.load();
-            audioPlayer.play().then(() => {
-                console.log('Archivo local reproducido.');
-                isPlayingLocal = true;
-            }).catch(error => {
-                console.log('Error al reproducir el archivo local:', error);
-            });
-        };
-
-        // Función para manejar cambios en la conexión cada 10 segundos
-        setInterval(checkInternet, 10000);
 
         // Inicialización al cargar la página
         window.addEventListener('load', () => {
             console.log('Página cargada, verificando conexión inicial.');
-            checkInternet();
+            checkAndSwitch();
+            setInterval(checkAndSwitch, 8000); // Verificar cada 8 segundos
         });
 
-        // Evento de error en la reproducción, intentar cambiar al archivo local si no está reproduciendo localmente
+        // Evento de error en la reproducción
         audioPlayer.addEventListener('error', () => {
-            if (!isPlayingLocal) {
-                console.log('Error en la reproducción de la transmisión, cambiando al archivo local.');
-                switchToLocalFile();
-            }
-        });
-
-        // Evento de pausa, intentar volver a conectar la transmisión en vivo si está reproduciendo localmente
-        audioPlayer.addEventListener('pause', () => {
-            if (isPlayingLocal) {
-                console.log('Audio en pausa, intentando volver a conectar la transmisión en vivo.');
-                switchToStream();
-            }
-        });
-
-        // Evitar la pausa automática del reproductor al cambiar la fuente de audio
-        audioPlayer.addEventListener('timeupdate', () => {
-            if (audioPlayer.paused && audioPlayer.currentTime > 0 && audioPlayer.src === streamURL) {
-                console.log('Reiniciando la transmisión en vivo.');
-                audioPlayer.play();
+            console.log(`Error en la reproducción de ${currentSource}, cambiando la fuente.`);
+            if (currentSource === streamURL) {
+                switchAudioSource(localURL); // Cambiar al archivo local si hay un error en la transmisión en vivo
             }
         });
     </script>
