@@ -15,11 +15,14 @@
         const audioPlayer = document.getElementById('audioPlayer');
 
         let isLive = true;
+        let retryDelay = 5000;
 
         function playAudio(source) {
             audioPlayer.src = source;
             audioPlayer.load();
-            audioPlayer.play().catch(error => {
+            audioPlayer.play().then(() => {
+                retryDelay = 5000; // Reset the retry delay on successful playback
+            }).catch(error => {
                 console.error("Error al intentar reproducir:", error);
                 handlePlaybackError();
             });
@@ -31,8 +34,9 @@
                 isLive = false;
                 playAudio(localFile);
             } else {
-                console.log("Fallo en la reproducción del archivo local, reintentando en 5 segundos.");
-                setTimeout(() => playAudio(localFile), 5000);
+                console.log("Fallo en la reproducción del archivo local, reintentando en " + (retryDelay / 1000) + " segundos.");
+                setTimeout(() => playAudio(localFile), retryDelay);
+                retryDelay = Math.min(retryDelay * 2, 60000); // Increment the delay up to a maximum of 60 seconds
             }
         }
 
