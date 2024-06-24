@@ -41,7 +41,7 @@
         }
 
         function checkConnection() {
-            fetch(liveStreamURL, { method: 'HEAD' }).then(() => {
+            fetch(liveStreamURL, { method: 'HEAD', mode: 'no-cors' }).then(() => {
                 if (!isLive) {
                     console.log("Conexión restablecida, cambiando a la transmisión en vivo.");
                     isLive = true;
