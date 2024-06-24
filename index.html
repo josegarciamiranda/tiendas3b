@@ -15,7 +15,6 @@
         const audioPlayer = document.getElementById('audioPlayer');
 
         let isLive = true;
-        let checkConnectionInterval;
 
         function playAudio(source) {
             audioPlayer.src = source;
@@ -53,20 +52,11 @@
         }
 
         audioPlayer.addEventListener('error', handlePlaybackError);
+
         audioPlayer.addEventListener('ended', () => {
             if (!isLive) {
                 console.log("Archivo local finalizado, intentando nuevamente la transmisión en vivo.");
                 playAudio(liveStreamURL);
-            }
-        });
-
-        audioPlayer.addEventListener('pause', () => {
-            if (isLive && navigator.onLine) {
-                console.log("La transmisión en vivo se pausó, reintentando la reproducción.");
-                playAudio(liveStreamURL);
-            } else if (!isLive) {
-                console.log("El archivo local se pausó, reintentando la reproducción.");
-                playAudio(localFile);
             }
         });
 
@@ -85,8 +75,9 @@
             }
         });
 
+        // Start playing live stream and check connection every 5 seconds
         playAudio(liveStreamURL);
-        checkConnectionInterval = setInterval(checkConnection, 5000);
+        setInterval(checkConnection, 5000);
     </script>
 </body>
 </html>
