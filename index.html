@@ -16,85 +16,78 @@
 
         let isLive = true;
         let retryDelay = 5000;
-        let connectionCheckInterval = null;
+        let retryTimer;
 
-        function playLiveStream() {
-            console.log("Reproduciendo la transmisión en vivo...");
-            audioPlayer.src = liveStreamURL;
+        function playAudio(source) {
+            audioPlayer.src = source;
             audioPlayer.load();
             audioPlayer.play().catch(error => {
-                console.error("Error al reproducir la transmisión en vivo:", error);
-                switchToOfflineMode();
+                console.error("Error al intentar reproducir:", error);
+                handlePlaybackError();
             });
         }
 
-        function playLocalFile() {
-            console.log("Reproduciendo archivo local...");
-            audioPlayer.src = localFile;
-            audioPlayer.load();
-            audioPlayer.play().catch(error => {
-                console.error("Error al reproducir archivo local:", error);
-            });
-        }
-
-        function switchToOfflineMode() {
-            console.log("Cambiando a modo offline...");
-            isLive = false;
-            playLocalFile();
-            clearInterval(connectionCheckInterval);
-            connectionCheckInterval = setInterval(checkConnection, 5000);
+        function handlePlaybackError() {
+            if (isLive) {
+                console.log("Fallo en la transmisión en vivo, cambiando al archivo local.");
+                isLive = false;
+                playAudio(localFile);
+            } else {
+                console.log("Fallo en la reproducción del archivo local, reintentando en " + (retryDelay / 1000) + " segundos.");
+                clearTimeout(retryTimer);
+                retryTimer = setTimeout(() => playAudio(localFile), retryDelay);
+                retryDelay = Math.min(retryDelay * 2, 60000); // Incrementar el retraso hasta un máximo de 60 segundos
+            }
         }
 
         function checkConnection() {
-            console.log("Verificando conexión...");
-            fetch(liveStreamURL, { method: 'HEAD' }).then(() => {
-                console.log("Conexión restablecida.");
+            fetch(liveStreamURL, { method: 'HEAD', mode: 'no-cors' }).then(() => {
                 if (!isLive) {
-                    console.log("Vuelta a la transmisión en vivo...");
+                    console.log("Conexión restablecida, cambiando a la transmisión en vivo.");
                     isLive = true;
-                    playLiveStream();
+                    retryDelay = 5000; // Resetear el retraso de reintento
+                    playAudio(liveStreamURL);
                 }
             }).catch(() => {
                 console.log("No se pudo establecer conexión con la transmisión en vivo.");
+                if (isLive) {
+                    handlePlaybackError();
+                }
             });
         }
 
-        // Iniciar la transmisión en vivo
-        playLiveStream();
-        connectionCheckInterval = setInterval(checkConnection, 5000);
-
-        // Eventos de manejo de errores y fin de reproducción
-        audioPlayer.addEventListener('error', () => {
-            console.error("Error de reproducción detectado.");
-            if (isLive) {
-                switchToOfflineMode();
-            }
-        });
+        audioPlayer.addEventListener('error', handlePlaybackError);
 
         audioPlayer.addEventListener('ended', () => {
-            console.log("Fin de la reproducción actual.");
             if (isLive) {
-                switchToOfflineMode();
+                handlePlaybackError();
+            } else {
+                console.log("Archivo local finalizado, reintentando transmisión en vivo.");
+                clearTimeout(retryTimer);
+                retryTimer = setTimeout(() => playAudio(localFile), retryDelay);
+                retryDelay = Math.min(retryDelay * 2, 60000); // Incrementar el retraso hasta un máximo de 60 segundos
             }
         });
 
-        // Manejar cambio de estado de conexión
         window.addEventListener('online', () => {
             console.log("Conexión a internet restablecida.");
             if (!isLive) {
                 isLive = true;
-                playLiveStream();
-                clearInterval(connectionCheckInterval);
-                connectionCheckInterval = setInterval(checkConnection, 5000);
+                retryDelay = 5000; // Resetear el retraso de reintento
+                playAudio(liveStreamURL);
             }
         });
 
         window.addEventListener('offline', () => {
             console.log("Conexión a internet perdida.");
             if (isLive) {
-                switchToOfflineMode();
+                handlePlaybackError();
             }
         });
+
+        // Iniciar la transmisión en vivo
+        playAudio(liveStreamURL);
+        setInterval(checkConnection, 5000);
     </script>
 </body>
 </html>
