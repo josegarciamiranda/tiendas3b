@@ -16,72 +16,85 @@
 
         let isLive = true;
         let retryDelay = 5000;
+        let connectionCheckInterval = null;
 
-        function playAudio(source) {
-            audioPlayer.src = source;
+        function playLiveStream() {
+            console.log("Reproduciendo la transmisión en vivo...");
+            audioPlayer.src = liveStreamURL;
             audioPlayer.load();
-            audioPlayer.play().then(() => {
-                retryDelay = 5000; // Reset the retry delay on successful playback
-            }).catch(error => {
-                console.error("Error al intentar reproducir:", error);
-                handlePlaybackError();
+            audioPlayer.play().catch(error => {
+                console.error("Error al reproducir la transmisión en vivo:", error);
+                switchToOfflineMode();
             });
         }
 
-        function handlePlaybackError() {
-            if (isLive) {
-                console.log("Fallo en la transmisión en vivo, cambiando al archivo local.");
-                isLive = false;
-                playAudio(localFile);
-            } else {
-                console.log("Fallo en la reproducción del archivo local, reintentando en " + (retryDelay / 1000) + " segundos.");
-                setTimeout(() => playAudio(localFile), retryDelay);
-                retryDelay = Math.min(retryDelay * 2, 60000); // Increment the delay up to a maximum of 60 seconds
-            }
+        function playLocalFile() {
+            console.log("Reproduciendo archivo local...");
+            audioPlayer.src = localFile;
+            audioPlayer.load();
+            audioPlayer.play().catch(error => {
+                console.error("Error al reproducir archivo local:", error);
+            });
+        }
+
+        function switchToOfflineMode() {
+            console.log("Cambiando a modo offline...");
+            isLive = false;
+            playLocalFile();
+            clearInterval(connectionCheckInterval);
+            connectionCheckInterval = setInterval(checkConnection, 5000);
         }
 
         function checkConnection() {
-            fetch(liveStreamURL, { method: 'HEAD', mode: 'no-cors' }).then(() => {
+            console.log("Verificando conexión...");
+            fetch(liveStreamURL, { method: 'HEAD' }).then(() => {
+                console.log("Conexión restablecida.");
                 if (!isLive) {
-                    console.log("Conexión restablecida, cambiando a la transmisión en vivo.");
+                    console.log("Vuelta a la transmisión en vivo...");
                     isLive = true;
-                    playAudio(liveStreamURL);
+                    playLiveStream();
                 }
             }).catch(() => {
                 console.log("No se pudo establecer conexión con la transmisión en vivo.");
-                if (isLive) {
-                    handlePlaybackError();
-                }
             });
         }
 
-        audioPlayer.addEventListener('error', handlePlaybackError);
+        // Iniciar la transmisión en vivo
+        playLiveStream();
+        connectionCheckInterval = setInterval(checkConnection, 5000);
 
-        audioPlayer.addEventListener('ended', () => {
-            if (!isLive) {
-                console.log("Archivo local finalizado, intentando nuevamente la transmisión en vivo.");
-                playAudio(liveStreamURL);
+        // Eventos de manejo de errores y fin de reproducción
+        audioPlayer.addEventListener('error', () => {
+            console.error("Error de reproducción detectado.");
+            if (isLive) {
+                switchToOfflineMode();
             }
         });
 
+        audioPlayer.addEventListener('ended', () => {
+            console.log("Fin de la reproducción actual.");
+            if (isLive) {
+                switchToOfflineMode();
+            }
+        });
+
+        // Manejar cambio de estado de conexión
         window.addEventListener('online', () => {
             console.log("Conexión a internet restablecida.");
             if (!isLive) {
                 isLive = true;
-                playAudio(liveStreamURL);
+                playLiveStream();
+                clearInterval(connectionCheckInterval);
+                connectionCheckInterval = setInterval(checkConnection, 5000);
             }
         });
 
         window.addEventListener('offline', () => {
             console.log("Conexión a internet perdida.");
             if (isLive) {
-                handlePlaybackError();
+                switchToOfflineMode();
             }
         });
-
-        // Start playing live stream and check connection every 5 seconds
-        playAudio(liveStreamURL);
-        setInterval(checkConnection, 5000);
     </script>
 </body>
 </html>
