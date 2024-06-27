@@ -15,79 +15,73 @@
         const audioPlayer = document.getElementById('audioPlayer');
 
         let isLive = true;
-        let retryDelay = 5000;
-        let retryTimer;
 
         function playAudio(source) {
             audioPlayer.src = source;
             audioPlayer.load();
             audioPlayer.play().catch(error => {
                 console.error("Error al intentar reproducir:", error);
-                handlePlaybackError();
+                if (isLive) {
+                    switchToLocal();
+                }
             });
         }
 
-        function handlePlaybackError() {
-            if (isLive) {
-                console.log("Fallo en la transmisión en vivo, cambiando al archivo local.");
-                isLive = false;
-                playAudio(localFile);
-            } else {
-                console.log("Fallo en la reproducción del archivo local, reintentando en " + (retryDelay / 1000) + " segundos.");
-                clearTimeout(retryTimer);
-                retryTimer = setTimeout(() => playAudio(localFile), retryDelay);
-                retryDelay = Math.min(retryDelay * 2, 60000); // Incrementar el retraso hasta un máximo de 60 segundos
-            }
+        function switchToLocal() {
+            console.log("Cambiando al archivo local.");
+            isLive = false;
+            playAudio(localFile);
+        }
+
+        function switchToLive() {
+            console.log("Cambiando a la transmisión en vivo.");
+            isLive = true;
+            playAudio(liveStreamURL);
         }
 
         function checkConnection() {
             fetch(liveStreamURL, { method: 'HEAD', mode: 'no-cors' }).then(() => {
                 if (!isLive) {
-                    console.log("Conexión restablecida, cambiando a la transmisión en vivo.");
-                    isLive = true;
-                    retryDelay = 5000; // Resetear el retraso de reintento
-                    playAudio(liveStreamURL);
+                    switchToLive();
                 }
             }).catch(() => {
-                console.log("No se pudo establecer conexión con la transmisión en vivo.");
                 if (isLive) {
-                    handlePlaybackError();
+                    switchToLocal();
                 }
             });
         }
 
-        audioPlayer.addEventListener('error', handlePlaybackError);
-
-        audioPlayer.addEventListener('ended', () => {
-            if (isLive) {
-                handlePlaybackError();
-            } else {
-                console.log("Archivo local finalizado, reintentando transmisión en vivo.");
-                clearTimeout(retryTimer);
-                retryTimer = setTimeout(() => playAudio(localFile), retryDelay);
-                retryDelay = Math.min(retryDelay * 2, 60000); // Incrementar el retraso hasta un máximo de 60 segundos
-            }
-        });
-
         window.addEventListener('online', () => {
-            console.log("Conexión a internet restablecida.");
             if (!isLive) {
-                isLive = true;
-                retryDelay = 5000; // Resetear el retraso de reintento
-                playAudio(liveStreamURL);
+                switchToLive();
             }
         });
 
         window.addEventListener('offline', () => {
-            console.log("Conexión a internet perdida.");
             if (isLive) {
-                handlePlaybackError();
+                switchToLocal();
             }
         });
 
         // Iniciar la transmisión en vivo
         playAudio(liveStreamURL);
+
+        // Verificar la conexión cada 5 segundos
         setInterval(checkConnection, 5000);
+
+        // Manejar errores de reproducción
+        audioPlayer.addEventListener('error', () => {
+            if (isLive) {
+                switchToLocal();
+            }
+        });
+
+        // Manejar el fin de la reproducción
+        audioPlayer.addEventListener('ended', () => {
+            if (!isLive) {
+                playAudio(localFile);
+            }
+        });
     </script>
 </body>
 </html>
