@@ -8,30 +8,54 @@
 <body>
 
 <audio id="audioPlayer" controls autoplay>
-  <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
-  <!-- Fallback file local en caso de pérdida de conexión -->
-  <source src="AEROSUR1.mp3" type="audio/mpeg">
+  <source id="radioSource" src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
+  <source id="localSource" src="AEROSUR1.mp3" type="audio/mpeg">
   Tu navegador no soporta el elemento de audio.
 </audio>
 
 <script>
   var audio = document.getElementById('audioPlayer');
-  var radioStream = 'https://c26.radioboss.fm:8581/stream';
-  var localFile = 'AEROSUR1.mp3';
+  var radioSource = document.getElementById('radioSource');
+  var localSource = document.getElementById('localSource');
+  var isOnline = true; // Estado inicial de la conexión
   
   // Verificar estado de la conexión
-  setInterval(function() {
+  function checkConnection() {
     var online = navigator.onLine;
-    if (!online && audio.src === radioStream) {
+    if (!online && isOnline) {
       // Cambiar a archivo local si la conexión se pierde
-      audio.src = localFile;
-      audio.play();
-    } else if (online && audio.src === localFile) {
+      isOnline = false;
+      switchSource(localSource);
+    } else if (online && !isOnline) {
       // Volver a la URL de la radio si la conexión se restablece
-      audio.src = radioStream;
-      audio.play();
+      isOnline = true;
+      switchSource(radioSource);
     }
-  }, 3000); // Comprobar cada 3 segundos
+  }
+
+  // Función para cambiar la fuente de audio
+  function switchSource(source) {
+    audio.pause(); // Pausar la reproducción actual
+    audio.currentTime = 0; // Reiniciar la reproducción desde el principio
+    audio.removeChild(audio.firstChild); // Limpiar la fuente actual
+    audio.appendChild(source.cloneNode()); // Agregar nueva fuente
+    audio.load(); // Cargar la nueva fuente
+    audio.play(); // Iniciar reproducción
+  }
+
+  // Verificar la conexión inicialmente
+  checkConnection();
+
+  // Verificar la conexión cada 3 segundos
+  setInterval(checkConnection, 3000);
+
+  // Capturar eventos de error de red para manejar desconexiones
+  audio.addEventListener('error', function() {
+    if (audio.error && audio.error.code === MediaError.MEDIA_ERR_NETWORK) {
+      // Cambiar a archivo local si hay un error de red
+      switchSource(localSource);
+    }
+  });
 
 </script>
 
