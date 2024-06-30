@@ -7,61 +7,42 @@
 </head>
 <body>
     <audio id="audioPlayer" controls autoplay>
+        <source id="audioSource" src="https://c26.radioboss.fm:8581/stream" type="audio/mp3">
         Tu navegador no soporta la reproducción de audio.
     </audio>
     <script>
         const audioPlayer = document.getElementById('audioPlayer');
+        const audioSource = document.getElementById('audioSource');
         const streamUrl = "https://c26.radioboss.fm:8581/stream";
         const localFile = "AEROSUR1.mp3";
-        let isPlayingLocalFile = false;
-
-        async function checkStream() {
-            try {
-                const response = await fetch(streamUrl, { method: 'HEAD' });
-                if (response.ok) {
-                    if (isPlayingLocalFile) {
-                        audioPlayer.src = streamUrl;
+        
+        function checkStream() {
+            fetch(streamUrl, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        if (audioSource.src !== streamUrl) {
+                            audioSource.src = streamUrl;
+                            audioPlayer.load();
+                            audioPlayer.play();
+                        }
+                    } else {
+                        throw new Error('Stream not available');
+                    }
+                })
+                .catch(error => {
+                    if (audioSource.src !== localFile) {
+                        audioSource.src = localFile;
                         audioPlayer.load();
                         audioPlayer.play();
-                        isPlayingLocalFile = false;
                     }
-                } else {
-                    throw new Error('Stream not available');
-                }
-            } catch (error) {
-                if (!isPlayingLocalFile) {
-                    audioPlayer.src = localFile;
-                    audioPlayer.load();
-                    audioPlayer.play();
-                    isPlayingLocalFile = true;
-                }
-            }
+                });
         }
 
-        audioPlayer.addEventListener('error', () => {
-            if (!isPlayingLocalFile) {
-                audioPlayer.src = localFile;
-                audioPlayer.load();
-                audioPlayer.play();
-                isPlayingLocalFile = true;
-            }
-        });
-
-        audioPlayer.addEventListener('ended', () => {
-            if (isPlayingLocalFile) {
-                audioPlayer.play(); // Reiniciar la reproducción del archivo local.
-            } else {
-                checkStream(); // Verificar si la transmisión en vivo está disponible.
-            }
-        });
-
-        // Verificar la disponibilidad del stream cada 10 segundos
+        // Check stream availability every 10 seconds
         setInterval(checkStream, 10000);
 
-        // Verificación inicial
-        audioPlayer.src = streamUrl;
-        audioPlayer.load();
-        audioPlayer.play();
+        // Initial check
+        checkStream();
     </script>
 </body>
 </html>
