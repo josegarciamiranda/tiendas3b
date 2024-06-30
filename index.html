@@ -59,7 +59,9 @@
         setInterval(checkStream, 10000);
 
         // Verificación inicial
-        checkStream();
+        audioPlayer.src = streamUrl;
+        audioPlayer.load();
+        audioPlayer.play();
     </script>
 </body>
 </html>
