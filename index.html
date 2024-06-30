@@ -18,7 +18,17 @@
   var radioSource = document.getElementById('radioSource');
   var localSource = document.getElementById('localSource');
   var isOnline = true; // Estado inicial de la conexión
-  
+
+  // Función para cambiar la fuente de audio
+  function switchSource(source) {
+    audio.pause(); // Pausar la reproducción actual
+    audio.currentTime = 0; // Reiniciar la reproducción desde el principio
+    audio.removeChild(audio.firstChild); // Limpiar la fuente actual
+    audio.appendChild(source.cloneNode()); // Agregar nueva fuente
+    audio.load(); // Cargar la nueva fuente
+    audio.play(); // Iniciar reproducción
+  }
+
   // Verificar estado de la conexión
   function checkConnection() {
     var online = navigator.onLine;
@@ -33,29 +43,11 @@
     }
   }
 
-  // Función para cambiar la fuente de audio
-  function switchSource(source) {
-    audio.pause(); // Pausar la reproducción actual
-    audio.currentTime = 0; // Reiniciar la reproducción desde el principio
-    audio.removeChild(audio.firstChild); // Limpiar la fuente actual
-    audio.appendChild(source.cloneNode()); // Agregar nueva fuente
-    audio.load(); // Cargar la nueva fuente
-    audio.play(); // Iniciar reproducción
-  }
-
   // Verificar la conexión inicialmente
   checkConnection();
 
   // Verificar la conexión cada 3 segundos
   setInterval(checkConnection, 3000);
-
-  // Capturar eventos de error de red para manejar desconexiones
-  audio.addEventListener('error', function() {
-    if (audio.error && audio.error.code === MediaError.MEDIA_ERR_NETWORK) {
-      // Cambiar a archivo local si hay un error de red
-      switchSource(localSource);
-    }
-  });
 
 </script>
 
