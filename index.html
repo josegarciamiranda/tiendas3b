@@ -1,77 +1,39 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reproductor de Audio</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reproductor de Audio</title>
 </head>
 <body>
-    <audio id="audioPlayer" controls autoplay>
-        <source id="audioSource" src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
-        Tu navegador no soporta la reproducción de audio.
-    </audio>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const audioPlayer = document.getElementById('audioPlayer');
-            const audioSource = document.getElementById('audioSource');
-            const streamURL = 'https://c26.radioboss.fm:8581/stream';
-            const localFile = 'AEROSUR1.mp3';
-            let isOnline = true;
 
-            // Función para verificar la conexión de internet
-            function checkStream() {
-                fetch(streamURL, { method: 'HEAD' })
-                    .then(response => {
-                        if (!response.ok) {
-                            throw new Error('Network response was not ok');
-                        }
-                        return response;
-                    })
-                    .then(() => {
-                        if (!isOnline) {
-                            switchToStream();
-                        }
-                    })
-                    .catch(() => {
-                        if (isOnline) {
-                            switchToLocalFile();
-                        }
-                    });
-            }
+<audio id="audioPlayer" controls autoplay>
+  <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
+  <!-- Fallback file local en caso de pérdida de conexión -->
+  <source src="AEROSUR1.mp3" type="audio/mpeg">
+  Tu navegador no soporta el elemento de audio.
+</audio>
 
-            // Cambia a la transmisión en vivo
-            function switchToStream() {
-                isOnline = true;
-                audioSource.src = streamURL;
-                audioPlayer.load();
-                audioPlayer.play();
-                console.log('Conectado a la transmisión en vivo');
-            }
+<script>
+  var audio = document.getElementById('audioPlayer');
+  var radioStream = 'https://c26.radioboss.fm:8581/stream';
+  var localFile = 'AEROSUR1.mp3';
+  
+  // Verificar estado de la conexión
+  setInterval(function() {
+    var online = navigator.onLine;
+    if (!online && audio.src === radioStream) {
+      // Cambiar a archivo local si la conexión se pierde
+      audio.src = localFile;
+      audio.play();
+    } else if (online && audio.src === localFile) {
+      // Volver a la URL de la radio si la conexión se restablece
+      audio.src = radioStream;
+      audio.play();
+    }
+  }, 3000); // Comprobar cada 3 segundos
 
-            // Cambia al archivo local
-            function switchToLocalFile() {
-                isOnline = false;
-                audioSource.src = localFile;
-                audioPlayer.load();
-                audioPlayer.play();
-                console.log('Reproduciendo archivo local');
-            }
+</script>
 
-            // Evento que se dispara cuando hay un error de reproducción
-            audioPlayer.addEventListener('error', () => {
-                if (isOnline) {
-                    switchToLocalFile();
-                } else {
-                    console.log('Error al reproducir el archivo local');
-                }
-            });
-
-            // Verificar la conexión de la transmisión cada 10 segundos
-            setInterval(checkStream, 10000);
-
-            // Iniciar la reproducción
-            audioPlayer.play();
-        });
-    </script>
 </body>
 </html>
