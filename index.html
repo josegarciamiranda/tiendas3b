@@ -1,73 +1,75 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reproductor de Audio</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Stream with Fallback</title>
 </head>
-<body>
-<audio id="audioPlayer" controls autoplay>
-  <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
-  <p>Tu navegador no soporta audio HTML5.</p>
-</audio>
+<body style="
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: auto 0;
+    margin-top: 20%;
+">
+    <audio id="audioPlayer" controls>
+        Your browser does not support the audio element.
+    </audio>
+    <script>
+        const liveStreamURL = 'https://s48.radiolize.com/radio/8050/radio.mp3'; // Replace with your live stream URL
+        const fallbackMP3 = '/local.mp3'; // Replace with your fallback MP3 file path
 
-<script>
-  const audioPlayer = document.getElementById('audioPlayer');
-  const offlineAudio = 'AEROSUR1.mp3';
-  let isOnline = true;
+        const audioPlayer = document.getElementById('audioPlayer');
 
-  // Función para verificar y cambiar entre audio en línea y fuera de línea
-  function checkConnection() {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', 'https://c26.radioboss.fm:8581/check_online.txt', true);
-    xhr.timeout = 5000; // Tiempo de espera de conexión en milisegundos
-
-    xhr.onload = function() {
-      if (xhr.status >= 200 && xhr.status < 300) {
-        // Si la solicitud fue exitosa, estamos en línea
-        if (!isOnline) {
-          audioPlayer.src = "https://c26.radioboss.fm:8581/stream";
-          audioPlayer.play();
-          isOnline = true;
+        function playLiveStream() {
+            audioPlayer.src = liveStreamURL;
+            audioPlayer.play().catch((err) => {
+                console.error('Failed to play live stream:', err);
+                playFallback();
+            });
         }
-      }
-    };
 
-    xhr.onerror = function() {
-      // Si hay un error de conexión, estamos fuera de línea
-      if (isOnline) {
-        audioPlayer.src = offlineAudio;
-        audioPlayer.play();
-        isOnline = false;
-      }
-    };
+        function playFallback() {
+            audioPlayer.src = fallbackMP3;
+            audioPlayer.play().catch((err) => {
+                console.error('Failed to play fallback MP3:', err);
+            });
+        }
 
-    xhr.ontimeout = function() {
-      // Si la solicitud tarda demasiado, consideramos que estamos fuera de línea
-      if (isOnline) {
-        audioPlayer.src = offlineAudio;
-        audioPlayer.play();
-        isOnline = false;
-      }
-    };
+        function updatePlayback() {
+            if (navigator.onLine) {
+                playLiveStream();
+            } else {
+                playFallback();
+            }
+        }
 
-    xhr.send();
-  }
+        window.addEventListener('online', () => {
+            updatePlayback();
+        });
 
-  // Verificar el estado de la conexión cada 10 segundos
-  setInterval(checkConnection, 10000);
+        window.addEventListener('offline', () => {
+            updatePlayback();
+        });
 
-  // Iniciar la verificación al cargar la página
-  checkConnection();
+        audioPlayer.addEventListener('error', () => {
+            if (navigator.onLine) {
+                playFallback();
+            }
+        });
 
-  // Detectar cuando la conexión se restablece y cambiar de nuevo a la URL remota
-  window.addEventListener('online', function() {
-    if (!isOnline) {
-      audioPlayer.src = "https://c26.radioboss.fm:8581/stream";
-      audioPlayer.play();
-      isOnline = true;
-    }
-  });
-</script>
+        // Check the connection and play the appropriate audio source
+        fetch(liveStreamURL, { method: 'HEAD' })
+            .then((response) => {
+                if (response.ok) {
+                    playLiveStream();
+                } else {
+                    playFallback();
+                }
+            })
+            .catch(() => {
+                playFallback();
+            });
+    </script>
 </body>
 </html>
