@@ -15,28 +15,25 @@
         const audioSource = document.getElementById('audioSource');
         const streamUrl = "https://c26.radioboss.fm:8581/stream";
         const localFile = "AEROSUR1.mp3";
-        let isPlayingLocalFile = false;
-
+        
         function checkStream() {
             fetch(streamUrl, { method: 'HEAD' })
                 .then(response => {
                     if (response.ok) {
-                        if (isPlayingLocalFile) {
+                        if (audioSource.src !== streamUrl) {
                             audioSource.src = streamUrl;
                             audioPlayer.load();
                             audioPlayer.play();
-                            isPlayingLocalFile = false;
                         }
                     } else {
                         throw new Error('Stream not available');
                     }
                 })
                 .catch(error => {
-                    if (!isPlayingLocalFile) {
+                    if (audioSource.src !== localFile) {
                         audioSource.src = localFile;
                         audioPlayer.load();
                         audioPlayer.play();
-                        isPlayingLocalFile = true;
                     }
                 });
         }
