@@ -3,85 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reproductor de Radio en Vivo</title>
+    <title>Reproductor de Audio</title>
 </head>
 <body>
-    <h1>Reproductor de Radio en Vivo</h1>
-    <audio id="audioPlayer" controls></audio>
-
+    <audio id="audioPlayer" controls autoplay>
+        <source id="audioSource" src="https://c26.radioboss.fm:8581/stream" type="audio/mp3">
+        Tu navegador no soporta la reproducción de audio.
+    </audio>
     <script>
-        const liveStreamURL = "https://c26.radioboss.fm:8581/stream";
-        const localFile = "AEROSUR1.mp3";
         const audioPlayer = document.getElementById('audioPlayer');
-
-        let isLive = true;
-
-        function playAudio(source) {
-            audioPlayer.src = source;
-            audioPlayer.load();
-            audioPlayer.play().catch(error => {
-                console.error("Error al intentar reproducir:", error);
-                if (isLive) {
-                    switchToLocal();
-                }
-            });
+        const audioSource = document.getElementById('audioSource');
+        const streamUrl = "https://c26.radioboss.fm:8581/stream";
+        const localFile = "AEROSUR1.mp3";
+        
+        function checkStream() {
+            fetch(streamUrl, { method: 'HEAD' })
+                .then(response => {
+                    if (response.ok) {
+                        if (audioSource.src !== streamUrl) {
+                            audioSource.src = streamUrl;
+                            audioPlayer.load();
+                            audioPlayer.play();
+                        }
+                    } else {
+                        throw new Error('Stream not available');
+                    }
+                })
+                .catch(error => {
+                    if (audioSource.src !== localFile) {
+                        audioSource.src = localFile;
+                        audioPlayer.load();
+                        audioPlayer.play();
+                    }
+                });
         }
 
-        function switchToLocal() {
-            console.log("Cambiando al archivo local.");
-            isLive = false;
-            playAudio(localFile);
-        }
+        // Check stream availability every 10 seconds
+        setInterval(checkStream, 10000);
 
-        function switchToLive() {
-            console.log("Cambiando a la transmisión en vivo.");
-            isLive = true;
-            playAudio(liveStreamURL);
-        }
-
-        function checkConnection() {
-            fetch(liveStreamURL, { method: 'HEAD', mode: 'no-cors' }).then(() => {
-                if (!isLive) {
-                    switchToLive();
-                }
-            }).catch(() => {
-                if (isLive) {
-                    switchToLocal();
-                }
-            });
-        }
-
-        window.addEventListener('online', () => {
-            if (!isLive) {
-                switchToLive();
-            }
-        });
-
-        window.addEventListener('offline', () => {
-            if (isLive) {
-                switchToLocal();
-            }
-        });
-
-        // Iniciar la transmisión en vivo
-        playAudio(liveStreamURL);
-
-        // Verificar la conexión cada 5 segundos
-        setInterval(checkConnection, 5000);
-
-        // Manejar errores de reproducción
-        audioPlayer.addEventListener('error', () => {
-            if (isLive) {
-                switchToLocal();
-            }
-        });
-
-        // Manejar el fin de la reproducción
-        audioPlayer.addEventListener('ended', () => {
-            if (!isLive) {
-                playAudio(localFile);
-            }
-        });
+        // Initial check
+        checkStream();
     </script>
 </body>
 </html>
