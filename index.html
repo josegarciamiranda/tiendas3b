@@ -1,77 +1,87 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Stream with Fallback</title>
+    <title>Reproductor de Radio en Vivo</title>
 </head>
-<body style="
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: auto 0;
-    margin-top: 20%;
-">
-    <audio id="audioPlayer" controls>
-        Your browser does not support the audio element.
-    </audio>
+<body>
+    <h1>Reproductor de Radio en Vivo</h1>
+    <audio id="audioPlayer" controls></audio>
+
     <script>
-        const liveStreamURL = 'https://s48.radiolize.com/radio/8050/radio.mp3'; // Replace with your live stream URL
-        const fallbackMP3 = '/soft-slip-less-music-213567.mp3'; // Replace with your fallback MP3 file path
-
+        const liveStreamURL = "https://c26.radioboss.fm:8581/stream";
+        const localFile = "AEROSUR.mp3";
         const audioPlayer = document.getElementById('audioPlayer');
-        let isConnected = navigator.onLine;
 
-        function checkConnection() {
-            fetch(liveStreamURL, { method: 'HEAD' })
-                .then((response) => {
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    if (!isConnected) {
-                        isConnected = true;
-                        playLiveStream();
-                    }
-                })
-                .catch(() => {
-                    if (isConnected) {
-                        isConnected = false;
-                        playFallback();
-                    }
-                });
-        }
+        let isLive = true;
 
-        function playLiveStream() {
-            audioPlayer.src = liveStreamURL;
-            audioPlayer.play().catch((err) => {
-                console.error('Failed to play live stream:', err);
+        function playAudio(source) {
+            audioPlayer.src = source;
+            audioPlayer.load();
+            audioPlayer.play().catch(error => {
+                console.error("Error al intentar reproducir:", error);
+                if (isLive) {
+                    switchToLocal();
+                }
             });
         }
 
-        function playFallback() {
-            audioPlayer.src = fallbackMP3;
-            audioPlayer.play().catch((err) => {
-                console.error('Failed to play fallback MP3:', err);
+        function switchToLocal() {
+            console.log("Cambiando al archivo local.");
+            isLive = false;
+            playAudio(localFile);
+        }
+
+        function switchToLive() {
+            console.log("Cambiando a la transmisión en vivo.");
+            isLive = true;
+            playAudio(liveStreamURL);
+        }
+
+        function checkConnection() {
+            fetch(liveStreamURL, { method: 'HEAD', mode: 'no-cors' }).then(() => {
+                if (!isLive) {
+                    switchToLive();
+                }
+            }).catch(() => {
+                if (isLive) {
+                    switchToLocal();
+                }
             });
         }
 
         window.addEventListener('online', () => {
-            isConnected = true;
-            playLiveStream();
-        });
-
-        window.addEventListener('offline', () => {
-            isConnected = false;
-            playFallback();
-        });
-
-        audioPlayer.addEventListener('error', () => {
-            if (isConnected) {
-                isConnected = false;
-                playFallback();
+            if (!isLive) {
+                switchToLive();
             }
         });
 
-        playLiveStream();
-        setInterval(checkConnection, 5000); // Check connection every 5 seconds
+        window.addEventListener('offline', () => {
+            if (isLive) {
+                switchToLocal();
+            }
+        });
+
+        // Iniciar la transmisión en vivo
+        playAudio(liveStreamURL);
+
+        // Verificar la conexión cada 5 segundos
+        setInterval(checkConnection, 5000);
+
+        // Manejar errores de reproducción
+        audioPlayer.addEventListener('error', () => {
+            if (isLive) {
+                switchToLocal();
+            }
+        });
+
+        // Manejar el fin de la reproducción
+        audioPlayer.addEventListener('ended', () => {
+            if (!isLive) {
+                playAudio(localFile);
+            }
+        });
     </script>
 </body>
 </html>
