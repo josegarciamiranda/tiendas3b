@@ -7,7 +7,7 @@
 </head>
 <body>
 
-<audio id="audioPlayer" controls autoplay onended="onAudioEnded()">
+<audio id="audioPlayer" controls autoplay onerror="onAudioError()">
   <source id="radioSource" src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
   <source id="localSource" src="AEROSUR1.mp3" type="audio/mpeg">
   Tu navegador no soporta el elemento de audio.
@@ -29,6 +29,14 @@
     audio.play(); // Iniciar reproducción
   }
 
+  // Función para manejar el evento de error de audio
+  function onAudioError() {
+    if (audio.error && audio.error.code === MediaError.MEDIA_ERR_NETWORK) {
+      // Cambiar a archivo local si hay un error de red
+      switchSource(localSource);
+    }
+  }
+
   // Verificar estado de la conexión
   function checkConnection() {
     var online = navigator.onLine;
@@ -48,14 +56,6 @@
 
   // Verificar la conexión cada 3 segundos
   setInterval(checkConnection, 3000);
-
-  // Función para manejar el evento de finalización de reproducción
-  function onAudioEnded() {
-    // Si el audio termina y estaba reproduciendo la URL, verificar la conexión
-    if (audio.currentSrc === radioSource.src) {
-      checkConnection();
-    }
-  }
 
 </script>
 
