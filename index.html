@@ -45,9 +45,11 @@
       isOnline = false;
       switchSource(localSource);
     } else if (online && !isOnline) {
-      // Volver a la URL de la radio si la conexión se restablece
-      isOnline = true;
-      switchSource(radioSource);
+      // Volver a la URL de la radio si la conexión se restablece y estaba reproduciendo local
+      if (audio.currentSrc === localSource.src) {
+        isOnline = true;
+        switchSource(radioSource);
+      }
     }
   }
 
