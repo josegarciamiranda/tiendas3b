@@ -1,65 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reproductor de Audio</title>
+<title>Reproductor de audio</title>
 </head>
 <body>
-
-<audio id="audioPlayer" controls autoplay onerror="onAudioError()">
-  <source id="radioSource" src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
+<audio id="audioPlayer" controls autoplay>
+  <source id="remoteSource" src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
   <source id="localSource" src="AEROSUR1.mp3" type="audio/mpeg">
-  Tu navegador no soporta el elemento de audio.
+  Tu navegador no soporta audio HTML5.
 </audio>
 
 <script>
-  var audio = document.getElementById('audioPlayer');
-  var radioSource = document.getElementById('radioSource');
-  var localSource = document.getElementById('localSource');
-  var isOnline = true; // Estado inicial de la conexión
+var audio = document.getElementById('audioPlayer');
+var remoteSource = document.getElementById('remoteSource');
+var localSource = document.getElementById('localSource');
+var isRemotePlaying = true;
 
-  // Función para cambiar la fuente de audio
-  function switchSource(source) {
-    audio.pause(); // Pausar la reproducción actual
-    audio.currentTime = 0; // Reiniciar la reproducción desde el principio
-    audio.removeChild(audio.firstChild); // Limpiar la fuente actual
-    audio.appendChild(source.cloneNode()); // Agregar nueva fuente
-    audio.load(); // Cargar la nueva fuente
-    audio.play(); // Iniciar reproducción
+// Monitorear cambios de estado del audio para manejar reconexión
+audio.addEventListener('error', function() {
+  console.error('Error al cargar el audio.');
+
+  if (isRemotePlaying) {
+    isRemotePlaying = false;
+    audio.src = 'AEROSUR1.mp3'; // Cambiar a la fuente local
+    audio.load();
+    audio.play();
+    console.log('Reproduciendo archivo local.');
   }
+});
 
-  // Función para manejar el evento de error de audio
-  function onAudioError() {
-    if (audio.error && audio.error.code === MediaError.MEDIA_ERR_NETWORK) {
-      // Cambiar a archivo local si hay un error de red
-      switchSource(localSource);
-    }
+// Intentar reconectar a la URL remota cada 30 segundos
+setInterval(function() {
+  if (!isRemotePlaying) {
+    console.log('Intentando reconectar al audio remoto...');
+    isRemotePlaying = true;
+    audio.src = remoteSource.src;
+    audio.load();
+    audio.play();
+    console.log('Reconectado al audio remoto.');
   }
-
-  // Verificar estado de la conexión
-  function checkConnection() {
-    var online = navigator.onLine;
-    if (!online && isOnline) {
-      // Cambiar a archivo local si la conexión se pierde
-      isOnline = false;
-      switchSource(localSource);
-    } else if (online && !isOnline) {
-      // Volver a la URL de la radio si la conexión se restablece y estaba reproduciendo local
-      if (audio.currentSrc === localSource.src) {
-        isOnline = true;
-        switchSource(radioSource);
-      }
-    }
-  }
-
-  // Verificar la conexión inicialmente
-  checkConnection();
-
-  // Verificar la conexión cada 3 segundos
-  setInterval(checkConnection, 3000);
+}, 30000); // 30 segundos
 
 </script>
-
 </body>
 </html>
+
+
