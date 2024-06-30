@@ -1,50 +1,73 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reproductor de audio</title>
+<title>Reproductor de Audio</title>
 </head>
 <body>
 <audio id="audioPlayer" controls autoplay>
-  <source id="remoteSource" src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
-  <source id="localSource" src="AEROSUR1.mp3" type="audio/mpeg">
-  Tu navegador no soporta audio HTML5.
+  <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
+  <p>Tu navegador no soporta audio HTML5.</p>
 </audio>
 
 <script>
-var audio = document.getElementById('audioPlayer');
-var remoteSource = document.getElementById('remoteSource');
-var localSource = document.getElementById('localSource');
-var isRemotePlaying = true;
+  const audioPlayer = document.getElementById('audioPlayer');
+  const offlineAudio = 'AEROSUR1.mp3';
+  let isOnline = true;
 
-// Monitorear cambios de estado del audio para manejar reconexión
-audio.addEventListener('error', function() {
-  console.error('Error al cargar el audio.');
+  // Función para verificar y cambiar entre audio en línea y fuera de línea
+  function checkConnection() {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'https://c26.radioboss.fm:8581/check_online.txt', true);
+    xhr.timeout = 5000; // Tiempo de espera de conexión en milisegundos
 
-  if (isRemotePlaying) {
-    isRemotePlaying = false;
-    audio.src = 'AEROSUR1.mp3'; // Cambiar a la fuente local
-    audio.load();
-    audio.play();
-    console.log('Reproduciendo archivo local.');
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        // Si la solicitud fue exitosa, estamos en línea
+        if (!isOnline) {
+          audioPlayer.src = "https://c26.radioboss.fm:8581/stream";
+          audioPlayer.play();
+          isOnline = true;
+        }
+      }
+    };
+
+    xhr.onerror = function() {
+      // Si hay un error de conexión, estamos fuera de línea
+      if (isOnline) {
+        audioPlayer.src = offlineAudio;
+        audioPlayer.play();
+        isOnline = false;
+      }
+    };
+
+    xhr.ontimeout = function() {
+      // Si la solicitud tarda demasiado, consideramos que estamos fuera de línea
+      if (isOnline) {
+        audioPlayer.src = offlineAudio;
+        audioPlayer.play();
+        isOnline = false;
+      }
+    };
+
+    xhr.send();
   }
-});
 
-// Intentar reconectar a la URL remota cada 30 segundos
-setInterval(function() {
-  if (!isRemotePlaying) {
-    console.log('Intentando reconectar al audio remoto...');
-    isRemotePlaying = true;
-    audio.src = remoteSource.src;
-    audio.load();
-    audio.play();
-    console.log('Reconectado al audio remoto.');
-  }
-}, 30000); // 30 segundos
+  // Verificar el estado de la conexión cada 10 segundos
+  setInterval(checkConnection, 10000);
 
+  // Iniciar la verificación al cargar la página
+  checkConnection();
+
+  // Detectar cuando la conexión se restablece y cambiar de nuevo a la URL remota
+  window.addEventListener('online', function() {
+    if (!isOnline) {
+      audioPlayer.src = "https://c26.radioboss.fm:8581/stream";
+      audioPlayer.play();
+      isOnline = true;
+    }
+  });
 </script>
 </body>
 </html>
-
-
