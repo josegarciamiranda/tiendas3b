@@ -17,33 +17,33 @@
         const localFile = "AEROSUR1.mp3";
         let isPlayingLocalFile = false;
 
-        function checkStream() {
-            fetch(streamUrl, { method: 'HEAD' })
-                .then(response => {
-                    if (response.ok) {
-                        if (isPlayingLocalFile) {
-                            audioSource.src = streamUrl;
-                            audioPlayer.load();
-                            audioPlayer.play();
-                            isPlayingLocalFile = false;
-                        }
-                    } else {
-                        throw new Error('Stream not available');
-                    }
-                })
-                .catch(error => {
-                    if (!isPlayingLocalFile) {
-                        audioSource.src = localFile;
+        async function checkStream() {
+            try {
+                const response = await fetch(streamUrl, { method: 'HEAD' });
+                if (response.ok) {
+                    if (isPlayingLocalFile) {
+                        audioSource.src = streamUrl;
                         audioPlayer.load();
                         audioPlayer.play();
-                        isPlayingLocalFile = true;
+                        isPlayingLocalFile = false;
                     }
-                });
+                } else {
+                    if (!isPlayingLocalFile) {
+                        throw new Error('Stream not available');
+                    }
+                }
+            } catch (error) {
+                if (!isPlayingLocalFile) {
+                    audioSource.src = localFile;
+                    audioPlayer.load();
+                    audioPlayer.play();
+                    isPlayingLocalFile = true;
+                }
+            }
         }
 
         audioPlayer.addEventListener('error', () => {
             if (!isPlayingLocalFile) {
-                // Error while trying to play the stream, switch to local file
                 audioSource.src = localFile;
                 audioPlayer.load();
                 audioPlayer.play();
@@ -53,15 +53,16 @@
 
         audioPlayer.addEventListener('ended', () => {
             if (isPlayingLocalFile) {
-                // Local file ended, check if stream is available again
-                checkStream();
+                audioPlayer.play();  // Reiniciar la reproducción del archivo local.
+            } else {
+                checkStream();  // Verificar si la transmisión en vivo está disponible.
             }
         });
 
-        // Check stream availability every 10 seconds
+        // Verificar la disponibilidad del stream cada 10 segundos
         setInterval(checkStream, 10000);
 
-        // Initial check
+        // Verificación inicial
         checkStream();
     </script>
 </body>
