@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Audio Reproduction Tiendas 3B</title>
+  <title>Audio Reproduction Project</title>
   <style>
     /* Add some basic styling to our page */
     body {
@@ -15,7 +15,7 @@
   </style>
 </head>
 <body>
-  <h1>Audio Reproduction Tiendas 3B</h1>
+  <h1>Audio Reproduction Project</h1>
   <audio id="audio-player" controls>
     <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
     <source src="" id="fallback-src" type="audio/mp3">
@@ -24,6 +24,7 @@
     const audioPlayer = document.getElementById('audio-player');
     const fallbackSrc = document.getElementById('fallback-src');
     let isConnected = navigator.onLine;
+    let isPausedDueToOffline = false;
 
     function checkConnection() {
       fetch('https://c26.radioboss.fm:8581/stream', { method: 'HEAD' })
@@ -37,7 +38,8 @@
         .catch(() => {
           if (isConnected) {
             isConnected = false;
-            playFallback();
+            isPausedDueToOffline = true;
+            audioPlayer.pause();
           }
         });
     }
@@ -57,6 +59,13 @@
       });
     }
 
+    audioPlayer.addEventListener('pause', () => {
+      if (isPausedDueToOffline) {
+        playFallback();
+        isPausedDueToOffline = false;
+      }
+    });
+
     window.addEventListener('online', () => {
       isConnected = true;
       playLiveStream();
@@ -64,14 +73,8 @@
 
     window.addEventListener('offline', () => {
       isConnected = false;
-      playFallback();
-    });
-
-    audioPlayer.addEventListener('error', () => {
-      if (isConnected) {
-        isConnected = false;
-        playFallback();
-      }
+      isPausedDueToOffline = true;
+      audioPlayer.pause();
     });
 
     playLiveStream();
