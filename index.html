@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Audio Streaming with Buffer</title>
+  <title>Audio Reproduction Project</title>
   <style>
     /* Add some basic styling to our page */
     body {
@@ -15,22 +15,49 @@
   </style>
 </head>
 <body>
-  <h1>Audio Streaming 3B</h1>
+  <h1>Audio Reproduction Project</h1>
   <audio id="audio-player" controls></audio>
   <script>
     const audioPlayer = document.getElementById('audio-player');
-    const mediaSource = new MediaSource();
-    const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+    let mediaSource = null;
+    let sourceBuffer = null;
     let bufferDuration = 180; // 3 minutes in seconds
     let bufferTimer = null;
     let isConnected = navigator.onLine;
 
+    // Create a new MediaSource object
+    mediaSource = new MediaSource();
     audioPlayer.srcObject = mediaSource;
+
+    // Create a new SourceBuffer object
+    sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+
+    // Set the buffer duration to 3 minutes
+    sourceBuffer.mode = 'sequence';
+    sourceBuffer.appendWindowStart = 0;
+    sourceBuffer.appendWindowEnd = bufferDuration;
+
+    function checkConnection() {
+      fetch('https://c26.radioboss.fm:8581/stream', { method: 'HEAD' })
+        .then((response) => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          if (!isConnected) {
+            isConnected = true;
+            startBuffering();
+          }
+        })
+        .catch(() => {
+          if (isConnected) {
+            isConnected = false;
+            stopBuffering();
+          }
+        });
+    }
 
     function startBuffering() {
       fetch('https://c26.radioboss.fm:8581/stream')
-       .then((response) => response.arrayBuffer())
-       .then((arrayBuffer) => {
+        .then((response) => response.arrayBuffer())
+        .then((arrayBuffer) => {
           sourceBuffer.appendBuffer(arrayBuffer);
           bufferTimer = setTimeout(() => {
             if (sourceBuffer.buffered.length > bufferDuration) {
@@ -40,22 +67,8 @@
         });
     }
 
-    function checkConnection() {
-      fetch('https://c26.radioboss.fm:8581/stream', { method: 'HEAD' })
-       .then((response) => {
-          if (!response.ok) throw new Error('Network response was not ok');
-          if (!isConnected) {
-            isConnected = true;
-            startBuffering();
-          }
-        })
-       .catch(() => {
-          if (isConnected) {
-            isConnected = false;
-            // Continue playing from buffer
-            audioPlayer.play();
-          }
-        });
+    function stopBuffering() {
+      clearTimeout(bufferTimer);
     }
 
     window.addEventListener('online', () => {
@@ -65,6 +78,7 @@
 
     window.addEventListener('offline', () => {
       isConnected = false;
+      stopBuffering();
     });
 
     checkConnection();
