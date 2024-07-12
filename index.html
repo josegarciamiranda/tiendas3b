@@ -16,68 +16,62 @@
 </head>
 <body>
   <h1>Audio Reproduction Project</h1>
-  <audio id="audio-player" controls>
-    <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
-    <source src="" id="fallback-src" type="audio/mp3">
-  </audio>
+  <audio id="audio-player" controls></audio>
   <script>
     const audioPlayer = document.getElementById('audio-player');
-    const fallbackSrc = document.getElementById('fallback-src');
+    const mediaSource = new MediaSource();
+    const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+    let bufferDuration = 180; // 3 minutes in seconds
+    let bufferTimer = null;
     let isConnected = navigator.onLine;
-    let isPausedDueToOffline = false;
+
+    audioPlayer.srcObject = mediaSource;
 
     function checkConnection() {
       fetch('https://c26.radioboss.fm:8581/stream', { method: 'HEAD' })
-        .then((response) => {
+       .then((response) => {
           if (!response.ok) throw new Error('Network response was not ok');
           if (!isConnected) {
             isConnected = true;
-            playLiveStream();
+            startBuffering();
           }
         })
-        .catch(() => {
+       .catch(() => {
           if (isConnected) {
             isConnected = false;
-            isPausedDueToOffline = true;
-            audioPlayer.pause();
+            stopBuffering();
           }
         });
     }
 
-    function playLiveStream() {
-      audioPlayer.src = 'https://c26.radioboss.fm:8581/stream';
-      audioPlayer.play().catch((err) => {
-        console.error('Failed to play live stream:', err);
-      });
+    function startBuffering() {
+      fetch('https://c26.radioboss.fm:8581/stream')
+       .then((response) => response.arrayBuffer())
+       .then((arrayBuffer) => {
+          sourceBuffer.appendBuffer(arrayBuffer);
+          bufferTimer = setTimeout(() => {
+            if (sourceBuffer.buffered.length > bufferDuration) {
+              sourceBuffer.remove(0, bufferDuration);
+            }
+          }, 1000);
+        });
     }
 
-    function playFallback() {
-      const blobUrl = 'blob:https://github.com/josegarciamiranda/tiendas3b/raw/main/AEROSUR1.mp3';
-      fallbackSrc.src = blobUrl;
-      audioPlayer.play().catch((err) => {
-        console.error('Failed to play fallback MP3:', err);
-      });
+    function stopBuffering() {
+      clearTimeout(bufferTimer);
     }
-
-    audioPlayer.addEventListener('pause', () => {
-      if (isPausedDueToOffline) {
-        playFallback();
-        isPausedDueToOffline = false;
-      }
-    });
 
     window.addEventListener('online', () => {
       isConnected = true;
-      playLiveStream();
+      startBuffering();
     });
 
     window.addEventListener('offline', () => {
       isConnected = false;
-      isPausedDueToOffline = true;
-      audioPlayer.pause();
+      stopBuffering();
     });
 
-    playLiveStream();
+    checkConnection();
     setInterval(checkConnection, 5000); // Check connection every 5 seconds
   </script>
 </body>
