@@ -5,7 +5,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Audio Reproduction Project</title>
+  <title>Audio Streaming with Buffer</title>
   <style>
     /* Add some basic styling to our page */
     body {
@@ -15,7 +15,7 @@
   </style>
 </head>
 <body>
-  <h1>Audio Reproduction TIENDAS 3B</h1>
+  <h1>Audio Streaming with Buffer</h1>
   <audio id="audio-player" controls></audio>
   <script>
     const audioPlayer = document.getElementById('audio-player');
@@ -26,23 +26,6 @@
     let isConnected = navigator.onLine;
 
     audioPlayer.srcObject = mediaSource;
-
-    function checkConnection() {
-      fetch('https://c26.radioboss.fm:8581/stream', { method: 'HEAD' })
-       .then((response) => {
-          if (!response.ok) throw new Error('Network response was not ok');
-          if (!isConnected) {
-            isConnected = true;
-            startBuffering();
-          }
-        })
-       .catch(() => {
-          if (isConnected) {
-            isConnected = false;
-            stopBuffering();
-          }
-        });
-    }
 
     function startBuffering() {
       fetch('https://c26.radioboss.fm:8581/stream')
@@ -57,8 +40,21 @@
         });
     }
 
-    function stopBuffering() {
-      clearTimeout(bufferTimer);
+    function checkConnection() {
+      fetch('https://c26.radioboss.fm:8581/stream', { method: 'HEAD' })
+       .then((response) => {
+          if (!response.ok) throw new Error('Network response was not ok');
+          if (!isConnected) {
+            isConnected = true;
+            startBuffering();
+          }
+        })
+       .catch(() => {
+          if (isConnected) {
+            isConnected = false;
+            audioPlayer.play(); // Continue playing from buffer
+          }
+        });
     }
 
     window.addEventListener('online', () => {
@@ -68,7 +64,6 @@
 
     window.addEventListener('offline', () => {
       isConnected = false;
-      stopBuffering();
     });
 
     checkConnection();
