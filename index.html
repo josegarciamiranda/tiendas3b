@@ -1,0 +1,56 @@
+<!-- index.html -->
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audio Reproduction Project</title>
+  <style>
+    /* Add some basic styling to our page */
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>Audio Reproduction Project</h1>
+  <audio id="audio-player" controls autoplay>
+    <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
+    <source src="AEROSUR1.mp3" type="audio/mp3">
+  </audio>
+  <script>
+    const audioPlayer = document.getElementById('audio-player');
+    let isStreaming = true;
+
+    // Function to check if internet connection is available
+    function checkInternetConnection() {
+      return navigator.onLine;
+    }
+
+    // Function to switch to fallback audio when internet connection is lost
+    function switchToFallbackAudio() {
+      isStreaming = false;
+      audioPlayer.src = 'AEROSUR1.mp3';
+      audioPlayer.play();
+    }
+
+    // Function to switch back to streaming audio when internet connection is restored
+    function switchToStreamingAudio() {
+      isStreaming = true;
+      audioPlayer.src = 'https://c26.radioboss.fm:8581/stream';
+      audioPlayer.play();
+    }
+
+    // Add event listeners to detect changes in internet connection
+    window.addEventListener('online', switchToStreamingAudio);
+    window.addEventListener('offline', switchToFallbackAudio);
+
+    // Initial check for internet connection
+    if (!checkInternetConnection()) {
+      switchToFallbackAudio();
+    }
+  </script>
+</body>
+</html>
