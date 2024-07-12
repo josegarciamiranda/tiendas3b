@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Audio Streaming with Buffering</title>
+    <title>Reproducción de audio con búfer</title>
     <style>
         body {
             text-align: center;
@@ -47,14 +47,14 @@
     <div id="audio-player">
         <audio id="audio-stream" preload="auto" controls>
             <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
-            Your browser does not support the audio tag.
+            Su navegador no es compatible con la etiqueta de audio.
         </audio>
     </div>
 
     <div id="controls">
-        <button id="play-button">Play</button>
-        <button id="pause-button">Pause</button>
-        <button id="stop-button">Stop</button>
+        <button id="play-button">Reproducir</button>
+        <button id="pause-button">Pausar</button>
+        <button id="stop-button">Detener</button>
     </div>
 
     <script>
@@ -64,7 +64,39 @@
         const stopButton = document.getElementById('stop-button');
 
         let isPlaying = false;
+        let isConnected = navigator.onLine;
 
+        // Lógica de búfer con manejo de conectividad a internet
+        audioStream.addEventListener('loadedmetadata', () => {
+            // Establecer la duración del búfer en 3 minutos
+            const bufferDuration = 3 * 60; // 3 minutos en segundos
+
+            // Establecer el intervalo de actualización del búfer
+            const bufferUpdateInterval = 1000; // 1 segundo
+
+            let bufferTime = 0;
+
+            // Actualizar el tiempo de búfer cada intervalo
+            setInterval(() => {
+                bufferTime = audioStream.buffered.end(audioStream.buffered.length - 1);
+
+                // Si el búfer es suficiente y hay internet, reanudar la reproducción
+                if (bufferTime >= bufferDuration && isConnected) {
+                    if (audioStream.paused) {
+                        audioStream.play();
+                    }
+                }
+
+                // Si se desconecta internet, pausar la reproducción
+                if (!isConnected) {
+                    if (!audioStream.paused) {
+                        audioStream.pause();
+                    }
+                }
+            }, bufferUpdateInterval);
+        });
+
+        // Manejar clic en el botón de reproducción
         playButton.addEventListener('click', () => {
             if (!isPlaying) {
                 audioStream.play();
@@ -74,6 +106,7 @@
             }
         });
 
+        // Manejar clic en el botón de pausa
         pauseButton.addEventListener('click', () => {
             if (isPlaying) {
                 audioStream.pause();
@@ -83,6 +116,7 @@
             }
         });
 
+        // Manejar clic en el botón de detener
         stopButton.addEventListener('click', () => {
             if (isPlaying) {
                 audioStream.pause();
@@ -93,48 +127,5 @@
             }
         });
 
-        // Buffering logic
-        audioStream.addEventListener('loadedmetadata', () => {
-            // Set the buffer duration to 3 minutes
-            const bufferDuration = 3 * 60; // 3 minutes in seconds
-
-            // Set the buffer update interval
-            const bufferUpdateInterval = 1000; // 1 second
-
-            let bufferTime = 0;
-
-            // Update the buffer time every interval
-            setInterval(() => {
-                bufferTime = audioStream.buffered.end(audioStream.buffered.length - 1);
-
-                // If the buffer time is less than the buffer duration, start buffering
-                if (bufferTime < bufferDuration) {
-                    if (!audioStream.paused) {
-                        audioStream.pause();
-                    }
-                }
-
-                // If the buffer time is equal to or greater than the buffer duration, resume playback
-                if (bufferTime >= bufferDuration) {
-                    if (audioStream.paused) {
-                        audioStream.play();
-                    }
-                }
-            }, bufferUpdateInterval);
-        });
-
-        // Handle internet connectivity changes
-        let isConnected = navigator.onLine;
-
-        window.addEventListener('online', () => {
-            if (!isConnected) {
-                isConnected = true;
-
-                // Resume playback if the buffer is sufficient
-                if (audioStream.buffered.length > 0) {
-                    audioStream.play();
-                }
-            }
-        });
-
-        window.addEventListener
+        // Manejar cambios de conectividad a internet
+        window.addEventListener('online', () =>
