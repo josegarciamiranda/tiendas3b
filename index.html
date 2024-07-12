@@ -15,7 +15,7 @@
   </style>
 </head>
 <body>
-  <h1>Audio Streaming with Buffer</h1>
+  <h1>Audio Streaming 3B</h1>
   <audio id="audio-player" controls></audio>
   <script>
     const audioPlayer = document.getElementById('audio-player');
@@ -52,7 +52,8 @@
        .catch(() => {
           if (isConnected) {
             isConnected = false;
-            audioPlayer.play(); // Continue playing from buffer
+            // Continue playing from buffer
+            audioPlayer.play();
           }
         });
     }
