@@ -1,88 +1,140 @@
-<!-- index.html -->
-
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Audio Reproduction Project</title>
-  <style>
-    /* Add some basic styling to our page */
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Streaming with Buffering</title>
+    <style>
+        body {
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+        }
+
+        #audio-player {
+            width: 300px;
+            height: 150px;
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+
+        #audio-player audio {
+            width: 100%;
+            height: 100%;
+        }
+
+        #controls {
+            display: flex;
+            margin-top: 10px;
+        }
+
+        #play-button,
+        #pause-button,
+        #stop-button {
+            padding: 5px 10px;
+            margin: 0 5px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-  <h1>Audio Reproduction Project</h1>
-  <audio id="audio-player" controls></audio>
-  <script>
-    const audioPlayer = document.getElementById('audio-player');
-    let mediaSource = null;
-    let sourceBuffer = null;
-    let bufferDuration = 180; // 3 minutes in seconds
-    let bufferTimer = null;
-    let isConnected = navigator.onLine;
+    <div id="audio-player">
+        <audio id="audio-stream" preload="auto" controls>
+            <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
+            Your browser does not support the audio tag.
+        </audio>
+    </div>
 
-    // Create a new MediaSource object
-    mediaSource = new MediaSource();
-    audioPlayer.srcObject = mediaSource;
+    <div id="controls">
+        <button id="play-button">Play</button>
+        <button id="pause-button">Pause</button>
+        <button id="stop-button">Stop</button>
+    </div>
 
-    // Create a new SourceBuffer object
-    sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+    <script>
+        const audioStream = document.getElementById('audio-stream');
+        const playButton = document.getElementById('play-button');
+        const pauseButton = document.getElementById('pause-button');
+        const stopButton = document.getElementById('stop-button');
 
-    // Set the buffer duration to 3 minutes
-    sourceBuffer.mode = 'sequence';
-    sourceBuffer.appendWindowStart = 0;
-    sourceBuffer.appendWindowEnd = bufferDuration;
+        let isPlaying = false;
 
-    function checkConnection() {
-      fetch('https://c26.radioboss.fm:8581/stream', { method: 'HEAD' })
-        .then((response) => {
-          if (!response.ok) throw new Error('Network response was not ok');
-          if (!isConnected) {
-            isConnected = true;
-            startBuffering();
-          }
-        })
-        .catch(() => {
-          if (isConnected) {
-            isConnected = false;
-            stopBuffering();
-          }
-        });
-    }
-
-    function startBuffering() {
-      fetch('https://c26.radioboss.fm:8581/stream')
-        .then((response) => response.arrayBuffer())
-        .then((arrayBuffer) => {
-          sourceBuffer.appendBuffer(arrayBuffer);
-          bufferTimer = setTimeout(() => {
-            if (sourceBuffer.buffered.length > bufferDuration) {
-              sourceBuffer.remove(0, bufferDuration);
+        playButton.addEventListener('click', () => {
+            if (!isPlaying) {
+                audioStream.play();
+                isPlaying = true;
+                playButton.disabled = true;
+                pauseButton.disabled = false;
             }
-          }, 1000);
         });
-    }
 
-    function stopBuffering() {
-      clearTimeout(bufferTimer);
-    }
+        pauseButton.addEventListener('click', () => {
+            if (isPlaying) {
+                audioStream.pause();
+                isPlaying = false;
+                playButton.disabled = false;
+                pauseButton.disabled = true;
+            }
+        });
 
-    window.addEventListener('online', () => {
-      isConnected = true;
-      startBuffering();
-    });
+        stopButton.addEventListener('click', () => {
+            if (isPlaying) {
+                audioStream.pause();
+                audioStream.currentTime = 0;
+                isPlaying = false;
+                playButton.disabled = false;
+                pauseButton.disabled = true;
+            }
+        });
 
-    window.addEventListener('offline', () => {
-      isConnected = false;
-      stopBuffering();
-    });
+        // Buffering logic
+        audioStream.addEventListener('loadedmetadata', () => {
+            // Set the buffer duration to 3 minutes
+            const bufferDuration = 3 * 60; // 3 minutes in seconds
 
-    checkConnection();
-    setInterval(checkConnection, 5000); // Check connection every 5 seconds
-  </script>
-</body>
-</html>
+            // Set the buffer update interval
+            const bufferUpdateInterval = 1000; // 1 second
+
+            let bufferTime = 0;
+
+            // Update the buffer time every interval
+            setInterval(() => {
+                bufferTime = audioStream.buffered.end(audioStream.buffered.length - 1);
+
+                // If the buffer time is less than the buffer duration, start buffering
+                if (bufferTime < bufferDuration) {
+                    if (!audioStream.paused) {
+                        audioStream.pause();
+                    }
+                }
+
+                // If the buffer time is equal to or greater than the buffer duration, resume playback
+                if (bufferTime >= bufferDuration) {
+                    if (audioStream.paused) {
+                        audioStream.play();
+                    }
+                }
+            }, bufferUpdateInterval);
+        });
+
+        // Handle internet connectivity changes
+        let isConnected = navigator.onLine;
+
+        window.addEventListener('online', () => {
+            if (!isConnected) {
+                isConnected = true;
+
+                // Resume playback if the buffer is sufficient
+                if (audioStream.buffered.length > 0) {
+                    audioStream.play();
+                }
+            }
+        });
+
+        window.addEventListener
