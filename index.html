@@ -13,8 +13,10 @@
         const localFile = "AEROSUR1.mp3"; // Asegúrate de tener este archivo en el mismo directorio o proporciona la ruta correcta
         const audioPlayer = document.getElementById('audioPlayer');
         let checkingStream = false;
+        let usingLocalFile = false;
 
         function playStream() {
+            usingLocalFile = false;
             audioPlayer.src = streamUrl;
             audioPlayer.play().catch(() => {
                 // En caso de que la reproducción falle, intenta cargar el archivo local
@@ -23,6 +25,7 @@
         }
 
         function playLocalFile() {
+            usingLocalFile = true;
             audioPlayer.src = localFile;
             audioPlayer.play();
         }
@@ -33,12 +36,12 @@
 
             fetch(streamUrl, { method: 'HEAD' })
                 .then(() => {
-                    if (audioPlayer.src !== streamUrl) {
+                    if (usingLocalFile) {
                         playStream();
                     }
                 })
                 .catch(() => {
-                    if (audioPlayer.src !== localFile) {
+                    if (!usingLocalFile) {
                         playLocalFile();
                     }
                 })
@@ -47,7 +50,7 @@
                 });
         }
 
-        audioPlayer.addEventListener('error', playLocalFile);
+        audioPlayer.addEventListener('stalled', playLocalFile);
         setInterval(checkStream, 5000); // Verifica la disponibilidad del stream cada 5 segundos
 
         // Iniciar la reproducción del stream
@@ -55,4 +58,3 @@
     </script>
 </body>
 </html>
-
