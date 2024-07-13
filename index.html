@@ -12,16 +12,13 @@
         const streamUrl = "https://c26.radioboss.fm:8581/stream";
         const localFile = "AEROSUR1.mp3"; // Asegúrate de tener este archivo en el mismo directorio o proporciona la ruta correcta
         const audioPlayer = document.getElementById('audioPlayer');
-        let checkingStream = false;
         let usingLocalFile = false;
+        let checkInterval;
 
         function playStream() {
             usingLocalFile = false;
             audioPlayer.src = streamUrl;
-            audioPlayer.play().catch(() => {
-                // En caso de que la reproducción falle, intenta cargar el archivo local
-                playLocalFile();
-            });
+            audioPlayer.play().catch(playLocalFile);
         }
 
         function playLocalFile() {
@@ -31,9 +28,6 @@
         }
 
         function checkStream() {
-            if (checkingStream) return; // Evitar múltiples verificaciones simultáneas
-            checkingStream = true;
-
             fetch(streamUrl, { method: 'HEAD' })
                 .then(() => {
                     if (usingLocalFile) {
@@ -44,14 +38,25 @@
                     if (!usingLocalFile) {
                         playLocalFile();
                     }
-                })
-                .finally(() => {
-                    checkingStream = false;
                 });
         }
 
-        audioPlayer.addEventListener('stalled', playLocalFile);
-        setInterval(checkStream, 5000); // Verifica la disponibilidad del stream cada 5 segundos
+        audioPlayer.addEventListener('stalled', () => {
+            if (!usingLocalFile) {
+                playLocalFile();
+            }
+        });
+
+        audioPlayer.addEventListener('play', () => {
+            if (!checkInterval) {
+                checkInterval = setInterval(checkStream, 5000); // Verifica la disponibilidad del stream cada 5 segundos
+            }
+        });
+
+        audioPlayer.addEventListener('pause', () => {
+            clearInterval(checkInterval);
+            checkInterval = null;
+        });
 
         // Iniciar la reproducción del stream
         playStream();
