@@ -3,129 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reproducción de audio con búfer</title>
-    <style>
-        body {
-            text-align: center;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-        }
-
-        #audio-player {
-            width: 300px;
-            height: 150px;
-            border: 1px solid #ccc;
-            padding: 10px;
-        }
-
-        #audio-player audio {
-            width: 100%;
-            height: 100%;
-        }
-
-        #controls {
-            display: flex;
-            margin-top: 10px;
-        }
-
-        #play-button,
-        #pause-button,
-        #stop-button {
-            padding: 5px 10px;
-            margin: 0 5px;
-            border: 1px solid #ccc;
-            cursor: pointer;
-        }
-    </style>
+    <title>Reproductor de Audio</title>
 </head>
 <body>
-    <div id="audio-player">
-        <audio id="audio-stream" preload="auto" controls>
-            <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
-            Su navegador no es compatible con la etiqueta de audio.
-        </audio>
-    </div>
-
-    <div id="controls">
-        <button id="play-button">Reproducir</button>
-        <button id="pause-button">Pausar</button>
-        <button id="stop-button">Detener</button>
-    </div>
+    <audio id="audioPlayer" controls></audio>
 
     <script>
-        const audioStream = document.getElementById('audio-stream');
-        const playButton = document.getElementById('play-button');
-        const pauseButton = document.getElementById('pause-button');
-        const stopButton = document.getElementById('stop-button');
+        const streamUrl = "https://c26.radioboss.fm:8581/stream";
+        const localFile = "AEROSUR1.mp3"; // Asegúrate de tener este archivo en el mismo directorio o proporciona la ruta correcta
+        const audioPlayer = document.getElementById('audioPlayer');
+        let checkingStream = false;
 
-        let isPlaying = false;
-        let isConnected = navigator.onLine;
+        function playStream() {
+            audioPlayer.src = streamUrl;
+            audioPlayer.play().catch(() => {
+                // En caso de que la reproducción falle, intenta cargar el archivo local
+                playLocalFile();
+            });
+        }
 
-        // Lógica de búfer con manejo de conectividad a internet
-        audioStream.addEventListener('loadedmetadata', () => {
-            // Establecer la duración del búfer en 3 minutos
-            const bufferDuration = 3 * 60; // 3 minutos en segundos
+        function playLocalFile() {
+            audioPlayer.src = localFile;
+            audioPlayer.play();
+        }
 
-            // Establecer el intervalo de actualización del búfer
-            const bufferUpdateInterval = 1000; // 1 segundo
+        function checkStream() {
+            if (checkingStream) return; // Evitar múltiples verificaciones simultáneas
+            checkingStream = true;
 
-            let bufferTime = 0;
-
-            // Actualizar el tiempo de búfer cada intervalo
-            setInterval(() => {
-                bufferTime = audioStream.buffered.end(audioStream.buffered.length - 1);
-
-                // Si el búfer es suficiente y hay internet, reanudar la reproducción
-                if (bufferTime >= bufferDuration && isConnected) {
-                    if (audioStream.paused) {
-                        audioStream.play();
+            fetch(streamUrl, { method: 'HEAD' })
+                .then(() => {
+                    if (audioPlayer.src !== streamUrl) {
+                        playStream();
                     }
-                }
-
-                // Si se desconecta internet, pausar la reproducción
-                if (!isConnected) {
-                    if (!audioStream.paused) {
-                        audioStream.pause();
+                })
+                .catch(() => {
+                    if (audioPlayer.src !== localFile) {
+                        playLocalFile();
                     }
-                }
-            }, bufferUpdateInterval);
-        });
+                })
+                .finally(() => {
+                    checkingStream = false;
+                });
+        }
 
-        // Manejar clic en el botón de reproducción
-        playButton.addEventListener('click', () => {
-            if (!isPlaying) {
-                audioStream.play();
-                isPlaying = true;
-                playButton.disabled = true;
-                pauseButton.disabled = false;
-            }
-        });
+        audioPlayer.addEventListener('error', playLocalFile);
+        setInterval(checkStream, 5000); // Verifica la disponibilidad del stream cada 5 segundos
 
-        // Manejar clic en el botón de pausa
-        pauseButton.addEventListener('click', () => {
-            if (isPlaying) {
-                audioStream.pause();
-                isPlaying = false;
-                playButton.disabled = false;
-                pauseButton.disabled = true;
-            }
-        });
+        // Iniciar la reproducción del stream
+        playStream();
+    </script>
+</body>
+</html>
 
-        // Manejar clic en el botón de detener
-        stopButton.addEventListener('click', () => {
-            if (isPlaying) {
-                audioStream.pause();
-                audioStream.currentTime = 0;
-                isPlaying = false;
-                playButton.disabled = false;
-                pauseButton.disabled = true;
-            }
-        });
-
-        // Manejar cambios de conectividad a internet
-        window.addEventListener('online', () =>
