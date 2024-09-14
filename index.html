@@ -30,7 +30,7 @@
         }
 
         function checkStream() {
-            fetch(streamUrl, { method: 'HEAD' })
+            fetch(streamUrl, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' })
                 .then(() => {
                     if (usingLocalFile) {
                         playStream();
@@ -43,6 +43,20 @@
                 });
         }
 
+        // Manejar eventos de error en el reproductor de audio
+        audioPlayer.addEventListener('error', () => {
+            playLocalFile();
+        });
+
+        // Manejar el fin de la reproducción
+        audioPlayer.addEventListener('ended', () => {
+            if (usingLocalFile) {
+                playStream();
+            } else {
+                playLocalFile();
+            }
+        });
+
         // Verifica la disponibilidad del stream cada 5 segundos
         setInterval(checkStream, 5000);
 
@@ -51,4 +65,3 @@
     </script>
 </body>
 </html>
-
