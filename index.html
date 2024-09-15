@@ -17,17 +17,21 @@
         function playStream() {
             usingLocalFile = false;
             audioPlayer.src = streamUrl;
-            audioPlayer.load(); // Cargar el stream
             audioPlayer.play().catch(() => {
-                setTimeout(playLocalFile, 2000); // Esperar 2 segundos antes de cambiar al archivo local
+                setTimeout(() => {
+                    if (!usingLocalFile) {
+                        playLocalFile();
+                    }
+                }, 2000);
             });
         }
 
         function playLocalFile() {
             usingLocalFile = true;
             audioPlayer.src = localFile;
-            audioPlayer.load(); // Cargar el archivo local
-            audioPlayer.play();
+            audioPlayer.play().catch(error => {
+                console.error('Error al reproducir el archivo local:', error);
+            });
         }
 
         function checkStream() {
