@@ -11,13 +11,37 @@
     <script>
         const streamUrl = "https://c26.radioboss.fm:8581/stream";
         const localFile = "AEROSUR1.mp3";
-        const audioPlayer = document.getElementById('audioPlayer');
+        let audioPlayer = document.getElementById('audioPlayer');
         let usingLocalFile = false;
+
+        function createAudioPlayer() {
+            const newAudioPlayer = document.createElement('audio');
+            newAudioPlayer.id = 'audioPlayer';
+            newAudioPlayer.controls = true;
+            document.body.replaceChild(newAudioPlayer, audioPlayer);
+            audioPlayer = newAudioPlayer;
+
+            // Manejar eventos de error en el reproductor de audio
+            audioPlayer.addEventListener('error', () => {
+                if (!usingLocalFile) {
+                    playLocalFile();
+                }
+            });
+
+            // Manejar el fin de la reproducción
+            audioPlayer.addEventListener('ended', () => {
+                if (usingLocalFile) {
+                    playStream();
+                } else {
+                    playLocalFile();
+                }
+            });
+        }
 
         function playStream() {
             usingLocalFile = false;
             audioPlayer.src = streamUrl;
-            audioPlayer.load(); // Asegurar que se carga el stream
+            audioPlayer.load(); // Cargar el stream
             audioPlayer.play().catch(() => {
                 playLocalFile();
             });
@@ -25,7 +49,7 @@
 
         function playLocalFile() {
             usingLocalFile = true;
-            audioPlayer.pause(); // Detener cualquier reproducción en curso
+            createAudioPlayer(); // Reiniciar el elemento de audio
             audioPlayer.src = localFile;
             audioPlayer.load(); // Cargar el archivo local
             audioPlayer.play();
@@ -58,22 +82,6 @@
             };
             xhr.send();
         }
-
-        // Manejar eventos de error en el reproductor de audio
-        audioPlayer.addEventListener('error', () => {
-            if (!usingLocalFile) {
-                playLocalFile();
-            }
-        });
-
-        // Manejar el fin de la reproducción
-        audioPlayer.addEventListener('ended', () => {
-            if (usingLocalFile) {
-                playStream();
-            } else {
-                playLocalFile();
-            }
-        });
 
         // Verifica la disponibilidad del stream cada 5 segundos
         setInterval(checkStream, 5000);
