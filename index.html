@@ -10,7 +10,7 @@
 
     <script>
         const streamUrl = "https://c26.radioboss.fm:8581/stream";
-        const localFile = "AEROSUR1.mp3"; // Asegúrate de tener este archivo en el mismo directorio o proporciona la ruta correcta
+        const localFile = "AEROSUR1.mp3?" + new Date().getTime(); // Agregar un parámetro único para evitar caché
         const audioPlayer = document.getElementById('audioPlayer');
         let usingLocalFile = false;
 
@@ -18,7 +18,6 @@
             usingLocalFile = false;
             audioPlayer.src = streamUrl;
             audioPlayer.play().catch(() => {
-                // En caso de que la reproducción falle, intenta cargar el archivo local
                 playLocalFile();
             });
         }
@@ -42,6 +41,16 @@
                     }
                 });
         }
+
+        // Reiniciar el reproductor de audio cada 10 minutos para evitar bloqueos
+        setInterval(() => {
+            audioPlayer.pause();
+            if (usingLocalFile) {
+                playLocalFile();
+            } else {
+                playStream();
+            }
+        }, 600000); // 600000 ms = 10 minutos
 
         // Manejar eventos de error en el reproductor de audio
         audioPlayer.addEventListener('error', () => {
