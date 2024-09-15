@@ -10,33 +10,10 @@
 
     <script>
         const streamUrl = "https://c26.radioboss.fm:8581/stream";
-        const localFile = "AEROSUR1.mp3";
-        let audioPlayer = document.getElementById('audioPlayer');
+        const localFile = "AEROSUR1.mp3"; // Asegúrate de tener este archivo en el mismo directorio o proporciona la ruta correcta
+        const audioPlayer = document.getElementById('audioPlayer');
         let usingLocalFile = false;
-
-        function createAudioPlayer() {
-            const newAudioPlayer = document.createElement('audio');
-            newAudioPlayer.id = 'audioPlayer';
-            newAudioPlayer.controls = true;
-            document.body.replaceChild(newAudioPlayer, audioPlayer);
-            audioPlayer = newAudioPlayer;
-
-            // Manejar eventos de error en el reproductor de audio
-            audioPlayer.addEventListener('error', () => {
-                if (!usingLocalFile) {
-                    playLocalFile();
-                }
-            });
-
-            // Manejar el fin de la reproducción
-            audioPlayer.addEventListener('ended', () => {
-                if (usingLocalFile) {
-                    playStream();
-                } else {
-                    playLocalFile();
-                }
-            });
-        }
+        let lastStreamErrorTime = 0;
 
         function playStream() {
             usingLocalFile = false;
@@ -49,42 +26,49 @@
 
         function playLocalFile() {
             usingLocalFile = true;
-            createAudioPlayer(); // Reiniciar el elemento de audio
             audioPlayer.src = localFile;
             audioPlayer.load(); // Cargar el archivo local
             audioPlayer.play();
         }
 
         function checkStream() {
-            const xhr = new XMLHttpRequest();
-            xhr.open('HEAD', streamUrl, true);
-            xhr.timeout = 2000; // 2 segundos para el timeout
-            xhr.onload = function() {
-                if (xhr.status >= 200 && xhr.status < 300) {
+            fetch(streamUrl, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' })
+                .then(() => {
                     if (usingLocalFile) {
                         playStream();
                     }
-                } else {
+                })
+                .catch(() => {
                     if (!usingLocalFile) {
                         playLocalFile();
                     }
-                }
-            };
-            xhr.onerror = function() {
-                if (!usingLocalFile) {
-                    playLocalFile();
-                }
-            };
-            xhr.ontimeout = function() {
-                if (!usingLocalFile) {
-                    playLocalFile();
-                }
-            };
-            xhr.send();
+                    lastStreamErrorTime = Date.now(); // Registrar el momento de error
+                });
         }
+
+        // Manejar eventos de error en el reproductor de audio
+        audioPlayer.addEventListener('error', () => {
+            playLocalFile();
+        });
+
+        // Manejar el fin de la reproducción
+        audioPlayer.addEventListener('ended', () => {
+            if (usingLocalFile) {
+                playStream();
+            } else {
+                playLocalFile();
+            }
+        });
 
         // Verifica la disponibilidad del stream cada 5 segundos
         setInterval(checkStream, 5000);
+
+        // Reiniciar el reproductor cada cierto tiempo
+        setInterval(() => {
+            if (!usingLocalFile && Date.now() - lastStreamErrorTime > 600000) { // 10 minutos
+                playStream();
+            }
+        }, 60000); // Cada minuto
 
         // Iniciar la reproducción del stream
         playStream();
