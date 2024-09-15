@@ -13,15 +13,13 @@
         const localFile = "AEROSUR1.mp3"; // Asegúrate de tener este archivo en el mismo directorio o proporciona la ruta correcta
         const audioPlayer = document.getElementById('audioPlayer');
         let usingLocalFile = false;
-        let retryTimeout;
 
         function playStream() {
-            clearTimeout(retryTimeout); // Limpiar cualquier timeout previo
             usingLocalFile = false;
             audioPlayer.src = streamUrl;
             audioPlayer.load(); // Cargar el stream
             audioPlayer.play().catch(() => {
-                retryTimeout = setTimeout(playLocalFile, 5000); // Esperar 5 segundos antes de cambiar al archivo local
+                setTimeout(playLocalFile, 2000); // Esperar 2 segundos antes de cambiar al archivo local
             });
         }
 
