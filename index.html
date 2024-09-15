@@ -1,65 +1,75 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reproductor de Audio</title>
+    <title>Live Stream with Fallback</title>
 </head>
-<body>
-    <audio id="audioPlayer" controls></audio>
-
+<body style="
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: auto 0;
+    margin-top: 20%;
+">
+    <audio id="audioPlayer" controls>
+        Your browser does not support the audio element.
+    </audio>
     <script>
-        const streamUrl = "https://c26.radioboss.fm:8581/stream";
-        const localFile = "AEROSUR1.mp3"; // Asegúrate de tener este archivo en el mismo directorio o proporciona la ruta correcta
+        const liveStreamURL = 'https://s48.radiolize.com/radio/8050/radio.mp3'; // Replace with your live stream URL
+        const fallbackMP3 = '/AEROSUR1.mp3'; // Replace with your fallback MP3 file path
+
         const audioPlayer = document.getElementById('audioPlayer');
-        let usingLocalFile = false;
 
-        function playStream() {
-            usingLocalFile = false;
-            audioPlayer.src = streamUrl;
-            audioPlayer.play().catch(() => {
-                setTimeout(() => {
-                    if (!usingLocalFile) {
-                        playLocalFile();
-                    }
-                }, 2000);
+        function playLiveStream() {
+            audioPlayer.src = liveStreamURL;
+            audioPlayer.play().catch((err) => {
+                console.error('Failed to play live stream:', err);
+                playFallback();
             });
         }
 
-        function playLocalFile() {
-            usingLocalFile = true;
-            audioPlayer.src = localFile;
-            audioPlayer.play().catch(error => {
-                console.error('Error al reproducir el archivo local:', error);
+        function playFallback() {
+            audioPlayer.src = fallbackMP3;
+            audioPlayer.play().catch((err) => {
+                console.error('Failed to play fallback MP3:', err);
             });
         }
 
-        function checkStream() {
-            fetch(streamUrl, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' })
-                .then(() => {
-                    if (usingLocalFile) {
-                        playStream();
-                    }
-                })
-                .catch(() => {
-                    if (!usingLocalFile) {
-                        playLocalFile();
-                    }
-                });
+        function updatePlayback() {
+            if (navigator.onLine) {
+                playLiveStream();
+            } else {
+                playFallback();
+            }
         }
 
-        // Manejar eventos de error en el reproductor de audio
+        window.addEventListener('online', () => {
+            updatePlayback();
+        });
+
+        window.addEventListener('offline', () => {
+            updatePlayback();
+        });
+
         audioPlayer.addEventListener('error', () => {
-            if (!usingLocalFile) {
-                playLocalFile();
+            if (navigator.onLine) {
+                playFallback();
             }
         });
 
-        // Verifica la disponibilidad del stream cada 30 segundos
-        setInterval(checkStream, 30000);
-
-        // Iniciar la reproducción del stream
-        playStream();
+        // Check the connection and play the appropriate audio source
+        fetch(liveStreamURL, { method: 'HEAD' })
+            .then((response) => {
+                if (response.ok) {
+                    playLiveStream();
+                } else {
+                    playFallback();
+                }
+            })
+            .catch(() => {
+                playFallback();
+            });
     </script>
 </body>
 </html>
