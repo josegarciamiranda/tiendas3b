@@ -13,14 +13,15 @@
         const localFile = "AEROSUR1.mp3"; // Asegúrate de tener este archivo en el mismo directorio o proporciona la ruta correcta
         const audioPlayer = document.getElementById('audioPlayer');
         let usingLocalFile = false;
-        let lastStreamErrorTime = 0;
+        let retryTimeout;
 
         function playStream() {
+            clearTimeout(retryTimeout); // Limpiar cualquier timeout previo
             usingLocalFile = false;
             audioPlayer.src = streamUrl;
             audioPlayer.load(); // Cargar el stream
             audioPlayer.play().catch(() => {
-                playLocalFile();
+                retryTimeout = setTimeout(playLocalFile, 5000); // Esperar 5 segundos antes de cambiar al archivo local
             });
         }
 
@@ -42,33 +43,18 @@
                     if (!usingLocalFile) {
                         playLocalFile();
                     }
-                    lastStreamErrorTime = Date.now(); // Registrar el momento de error
                 });
         }
 
         // Manejar eventos de error en el reproductor de audio
         audioPlayer.addEventListener('error', () => {
-            playLocalFile();
-        });
-
-        // Manejar el fin de la reproducción
-        audioPlayer.addEventListener('ended', () => {
-            if (usingLocalFile) {
-                playStream();
-            } else {
+            if (!usingLocalFile) {
                 playLocalFile();
             }
         });
 
-        // Verifica la disponibilidad del stream cada 5 segundos
-        setInterval(checkStream, 5000);
-
-        // Reiniciar el reproductor cada cierto tiempo
-        setInterval(() => {
-            if (!usingLocalFile && Date.now() - lastStreamErrorTime > 600000) { // 10 minutos
-                playStream();
-            }
-        }, 60000); // Cada minuto
+        // Verifica la disponibilidad del stream cada 30 segundos
+        setInterval(checkStream, 30000);
 
         // Iniciar la reproducción del stream
         playStream();
