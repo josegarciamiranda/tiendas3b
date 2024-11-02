@@ -3,38 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reproductor de Audio</title>
+    <title>Reproductor de Audio con Conmutación Automática</title>
 </head>
 <body>
-    <h1>Audio 3B</h1>
-    <audio id="audioPlayer" controls autoplay></audio>
+    <h1>Reproductor de Audio con Conmutación Automática</h1>
+
+    <!-- Dos reproductores de audio: uno para la transmisión y otro para el archivo local -->
+    <audio id="streamPlayer" controls autoplay></audio>
+    <audio id="backupPlayer" controls style="display:none"></audio>
 
     <script>
-        const audioPlayer = document.getElementById('audioPlayer');
         const streamUrl = "https://c26.radioboss.fm:8581/stream";
         const localBackup = "AEROSUR1.mp3";
+        const streamPlayer = document.getElementById('streamPlayer');
+        const backupPlayer = document.getElementById('backupPlayer');
         let usingStream = true;
 
-        // Función para iniciar la reproducción de una fuente específica
-        function setAudioSource(source) {
-            audioPlayer.src = source;
-            audioPlayer.load();
-            audioPlayer.play().catch(error => console.log("Error al reproducir:", error));
+        // Configurar las fuentes de audio
+        streamPlayer.src = streamUrl;
+        backupPlayer.src = localBackup;
+
+        // Función para iniciar el reproductor de transmisión en vivo
+        function startStream() {
+            backupPlayer.pause();
+            backupPlayer.style.display = 'none';
+            streamPlayer.style.display = 'block';
+            streamPlayer.play().catch(error => console.log("Error al iniciar la transmisión:", error));
+        }
+
+        // Función para iniciar el reproductor del archivo local
+        function startBackup() {
+            streamPlayer.pause();
+            streamPlayer.style.display = 'none';
+            backupPlayer.style.display = 'block';
+            backupPlayer.play().catch(error => console.log("Error al iniciar el archivo local:", error));
         }
 
         // Iniciar con la transmisión en vivo
-        setAudioSource(streamUrl);
+        startStream();
 
-        // Evento de error en el reproductor: cambiar al archivo local si hay error
-        audioPlayer.addEventListener('error', () => {
-            if (usingStream) {
-                console.log("Transmisión en vivo fallida. Cambiando al archivo local.");
-                usingStream = false;
-                setAudioSource(localBackup);
-            }
+        // Detectar errores en el stream y cambiar al archivo local
+        streamPlayer.addEventListener('error', () => {
+            console.log("Transmisión en vivo fallida. Cambiando al archivo local.");
+            usingStream = false;
+            startBackup();
         });
 
-        // Verificar cada 5 segundos si la transmisión en vivo está disponible para reconectar
+        // Intento de reconexión cada 5 segundos si estamos en el archivo local
         setInterval(() => {
             if (!usingStream) {
                 fetch(streamUrl, { method: "HEAD" })
@@ -42,7 +57,7 @@
                         if (response.ok) {
                             console.log("Transmisión en vivo disponible nuevamente. Reconectando...");
                             usingStream = true;
-                            setAudioSource(streamUrl);
+                            startStream();
                         }
                     })
                     .catch(error => console.log("Transmisión en vivo aún no disponible.", error));
