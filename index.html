@@ -1,75 +1,52 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Live Stream with Fallback</title>
+    <title>Reproductor de Audio</title>
 </head>
-<body style="
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: auto 0;
-    margin-top: 20%;
-">
-    <audio id="audioPlayer" controls>
-        Your browser does not support the audio element.
-    </audio>
+<body>
+    <h1>Reproductor de Audio con Conmutación Automática</h1>
+    <audio id="audioPlayer" controls autoplay></audio>
+
     <script>
-        const liveStreamURL = 'https://c26.radioboss.fm:8581/stream'; // Replace with your live stream URL
-        const fallbackMP3 = '/AEROSUR1.mp3'; // Replace with your fallback MP3 file path
-
         const audioPlayer = document.getElementById('audioPlayer');
+        const streamUrl = "https://c26.radioboss.fm:8581/stream";
+        const localBackup = "AEROSUR1.mp3";
+        let streamPlaying = true;
 
-        function playLiveStream() {
-            audioPlayer.src = liveStreamURL;
-            audioPlayer.play().catch((err) => {
-                console.error('Failed to play live stream:', err);
-                playFallback();
-            });
+        // Función para establecer la fuente de audio
+        function setAudioSource(source) {
+            audioPlayer.src = source;
+            audioPlayer.play().catch(error => console.log("Error al reproducir:", error));
         }
 
-        function playFallback() {
-            audioPlayer.src = fallbackMP3;
-            audioPlayer.play().catch((err) => {
-                console.error('Failed to play fallback MP3:', err);
-            });
-        }
+        // Inicializar con la URL de streaming
+        setAudioSource(streamUrl);
 
-        function updatePlayback() {
-            if (navigator.onLine) {
-                playLiveStream();
-            } else {
-                playFallback();
-            }
-        }
+        // Verificar el estado de la conexión periódicamente
+        setInterval(() => {
+            fetch(streamUrl, { method: "HEAD" })
+                .then(response => {
+                    if (response.ok) {
+                        if (!streamPlaying) {
+                            streamPlaying = true;
+                            setAudioSource(streamUrl);
+                            console.log("Se ha reconectado a la transmisión en vivo.");
+                        }
+                    } else {
+                        throw new Error("Error en la transmisión.");
+                    }
+                })
+                .catch(error => {
+                    if (streamPlaying) {
+                        streamPlaying = false;
+                        setAudioSource(localBackup);
+                        console.log("Transmisión en vivo perdida. Reproduciendo archivo local.");
+                    }
+                });
+        }, 5000); // Intervalo de 5 segundos para verificar el estado de la transmisión
 
-        window.addEventListener('online', () => {
-            updatePlayback();
-        });
-
-        window.addEventListener('offline', () => {
-            updatePlayback();
-        });
-
-        audioPlayer.addEventListener('error', () => {
-            if (navigator.onLine) {
-                playFallback();
-            }
-        });
-
-        // Check the connection and play the appropriate audio source
-        fetch(liveStreamURL, { method: 'HEAD' })
-            .then((response) => {
-                if (response.ok) {
-                    playLiveStream();
-                } else {
-                    playFallback();
-                }
-            })
-            .catch(() => {
-                playFallback();
-            });
     </script>
 </body>
 </html>
