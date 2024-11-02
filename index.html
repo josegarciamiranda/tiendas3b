@@ -15,9 +15,10 @@
         const localBackup = "AEROSUR1.mp3";
         let streamPlaying = true;
 
-        // Función para establecer la fuente de audio
+        // Función para establecer la fuente de audio y reiniciar la reproducción
         function setAudioSource(source) {
             audioPlayer.src = source;
+            audioPlayer.load();  // Reinicia la carga del audio
             audioPlayer.play().catch(error => console.log("Error al reproducir:", error));
         }
 
@@ -31,7 +32,7 @@
                     if (response.ok) {
                         if (!streamPlaying) {
                             streamPlaying = true;
-                            setAudioSource(streamUrl);
+                            setAudioSource(streamUrl); // Reconectar al streaming en vivo
                             console.log("Se ha reconectado a la transmisión en vivo.");
                         }
                     } else {
@@ -41,7 +42,7 @@
                 .catch(error => {
                     if (streamPlaying) {
                         streamPlaying = false;
-                        setAudioSource(localBackup);
+                        setAudioSource(localBackup); // Cambiar al archivo local
                         console.log("Transmisión en vivo perdida. Reproduciendo archivo local.");
                     }
                 });
