@@ -6,54 +6,47 @@
     <title>Reproductor de Audio</title>
 </head>
 <body>
-    <h1>Audio Tiendas 3B</h1>
-    <div id="playerContainer">
-        <audio id="audioPlayer" controls autoplay></audio>
-    </div>
+    <h1>Audio 3B</h1>
+    <audio id="audioPlayer" controls autoplay></audio>
 
     <script>
+        const audioPlayer = document.getElementById('audioPlayer');
         const streamUrl = "https://c26.radioboss.fm:8581/stream";
         const localBackup = "AEROSUR1.mp3";
-        let streamPlaying = true;
-        
-        function createAudioPlayer(source) {
-            const playerContainer = document.getElementById('playerContainer');
-            playerContainer.innerHTML = '';  // Limpia el contenedor para reiniciar el reproductor
+        let usingStream = true;
 
-            const audioPlayer = document.createElement('audio');
-            audioPlayer.id = 'audioPlayer';
-            audioPlayer.controls = true;
-            audioPlayer.autoplay = true;
+        // Función para iniciar la reproducción de una fuente específica
+        function setAudioSource(source) {
             audioPlayer.src = source;
-
-            playerContainer.appendChild(audioPlayer);
+            audioPlayer.load();
             audioPlayer.play().catch(error => console.log("Error al reproducir:", error));
         }
 
-        // Inicializar el reproductor con la URL de streaming
-        createAudioPlayer(streamUrl);
+        // Iniciar con la transmisión en vivo
+        setAudioSource(streamUrl);
 
-        // Verificar el estado de la conexión periódicamente
+        // Evento de error en el reproductor: cambiar al archivo local si hay error
+        audioPlayer.addEventListener('error', () => {
+            if (usingStream) {
+                console.log("Transmisión en vivo fallida. Cambiando al archivo local.");
+                usingStream = false;
+                setAudioSource(localBackup);
+            }
+        });
+
+        // Verificar cada 5 segundos si la transmisión en vivo está disponible para reconectar
         setInterval(() => {
-            fetch(streamUrl, { method: "HEAD" })
-                .then(response => {
-                    if (response.ok) {
-                        if (!streamPlaying) {
-                            streamPlaying = true;
-                            createAudioPlayer(streamUrl); // Reconectar al streaming en vivo
-                            console.log("Se ha reconectado a la transmisión en vivo.");
+            if (!usingStream) {
+                fetch(streamUrl, { method: "HEAD" })
+                    .then(response => {
+                        if (response.ok) {
+                            console.log("Transmisión en vivo disponible nuevamente. Reconectando...");
+                            usingStream = true;
+                            setAudioSource(streamUrl);
                         }
-                    } else {
-                        throw new Error("Error en la transmisión.");
-                    }
-                })
-                .catch(error => {
-                    if (streamPlaying) {
-                        streamPlaying = false;
-                        createAudioPlayer(localBackup); // Cambiar al archivo local
-                        console.log("Transmisión en vivo perdida. Reproduciendo archivo local.");
-                    }
-                });
+                    })
+                    .catch(error => console.log("Transmisión en vivo aún no disponible.", error));
+            }
         }, 5000); // Intervalo de 5 segundos para verificar el estado de la transmisión
 
     </script>
