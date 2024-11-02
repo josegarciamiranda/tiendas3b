@@ -7,23 +7,31 @@
 </head>
 <body>
     <h1>Reproductor de Audio con Conmutación Automática</h1>
-    <audio id="audioPlayer" controls autoplay></audio>
+    <div id="playerContainer">
+        <audio id="audioPlayer" controls autoplay></audio>
+    </div>
 
     <script>
-        const audioPlayer = document.getElementById('audioPlayer');
         const streamUrl = "https://c26.radioboss.fm:8581/stream";
         const localBackup = "AEROSUR1.mp3";
         let streamPlaying = true;
+        
+        function createAudioPlayer(source) {
+            const playerContainer = document.getElementById('playerContainer');
+            playerContainer.innerHTML = '';  // Limpia el contenedor para reiniciar el reproductor
 
-        // Función para establecer la fuente de audio y reiniciar la reproducción
-        function setAudioSource(source) {
+            const audioPlayer = document.createElement('audio');
+            audioPlayer.id = 'audioPlayer';
+            audioPlayer.controls = true;
+            audioPlayer.autoplay = true;
             audioPlayer.src = source;
-            audioPlayer.load();  // Reinicia la carga del audio
+
+            playerContainer.appendChild(audioPlayer);
             audioPlayer.play().catch(error => console.log("Error al reproducir:", error));
         }
 
-        // Inicializar con la URL de streaming
-        setAudioSource(streamUrl);
+        // Inicializar el reproductor con la URL de streaming
+        createAudioPlayer(streamUrl);
 
         // Verificar el estado de la conexión periódicamente
         setInterval(() => {
@@ -32,7 +40,7 @@
                     if (response.ok) {
                         if (!streamPlaying) {
                             streamPlaying = true;
-                            setAudioSource(streamUrl); // Reconectar al streaming en vivo
+                            createAudioPlayer(streamUrl); // Reconectar al streaming en vivo
                             console.log("Se ha reconectado a la transmisión en vivo.");
                         }
                     } else {
@@ -42,7 +50,7 @@
                 .catch(error => {
                     if (streamPlaying) {
                         streamPlaying = false;
-                        setAudioSource(localBackup); // Cambiar al archivo local
+                        createAudioPlayer(localBackup); // Cambiar al archivo local
                         console.log("Transmisión en vivo perdida. Reproduciendo archivo local.");
                     }
                 });
