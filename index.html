@@ -3,67 +3,66 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reproductor de Audio con Conmutación Automática</title>
+    <title>Reproductor de Audio</title>
 </head>
 <body>
-    <h1>Reproductor de Audio con Conmutación Automática</h1>
-
-    <!-- Dos reproductores de audio: uno para la transmisión y otro para el archivo local -->
-    <audio id="streamPlayer" controls autoplay></audio>
-    <audio id="backupPlayer" controls style="display:none"></audio>
+    <audio id="audioPlayer" controls autoplay></audio>
 
     <script>
-        const streamUrl = "https://c26.radioboss.fm:8581/stream";
-        const localBackup = "AEROSUR1.mp3";
-        const streamPlayer = document.getElementById('streamPlayer');
-        const backupPlayer = document.getElementById('backupPlayer');
-        let usingStream = true;
+        const audioPlayer = document.getElementById('audioPlayer');
+        const streamUrl = 'https://c26.radioboss.fm:8581/stream';
+        const fallbackAudio = 'AEROSUR1.mp3'; // Asegúrate de que este archivo esté en la misma carpeta que tu HTML
 
-        // Configurar las fuentes de audio
-        streamPlayer.src = streamUrl;
-        backupPlayer.src = localBackup;
+        let isPlayingStream = true;
 
-        // Función para iniciar el reproductor de transmisión en vivo
-        function startStream() {
-            backupPlayer.pause();
-            backupPlayer.style.display = 'none';
-            streamPlayer.style.display = 'block';
-            streamPlayer.play().catch(error => console.log("Error al iniciar la transmisión:", error));
+        function playStream() {
+            audioPlayer.src = streamUrl;
+            audioPlayer.load();
+            audioPlayer.play().catch(error => {
+                console.error('Error al reproducir el stream:', error);
+                isPlayingStream = false;
+                playFallback();
+            });
         }
 
-        // Función para iniciar el reproductor del archivo local
-        function startBackup() {
-            streamPlayer.pause();
-            streamPlayer.style.display = 'none';
-            backupPlayer.style.display = 'block';
-            backupPlayer.play().catch(error => console.log("Error al iniciar el archivo local:", error));
+        function playFallback() {
+            audioPlayer.src = fallbackAudio;
+            audioPlayer.load();
+            audioPlayer.play().catch(error => {
+                console.error('Error al reproducir el archivo local:', error);
+            });
         }
 
-        // Iniciar con la transmisión en vivo
-        startStream();
-
-        // Detectar errores en el stream y cambiar al archivo local
-        streamPlayer.addEventListener('error', () => {
-            console.log("Transmisión en vivo fallida. Cambiando al archivo local.");
-            usingStream = false;
-            startBackup();
+        audioPlayer.addEventListener('error', () => {
+            console.error('Error en el reproductor de audio. Intentando cambiar a la pista de respaldo.');
+            isPlayingStream = false;
+            playFallback();
         });
 
-        // Intento de reconexión cada 5 segundos si estamos en el archivo local
-        setInterval(() => {
-            if (!usingStream) {
-                fetch(streamUrl, { method: "HEAD" })
-                    .then(response => {
-                        if (response.ok) {
-                            console.log("Transmisión en vivo disponible nuevamente. Reconectando...");
-                            usingStream = true;
-                            startStream();
-                        }
-                    })
-                    .catch(error => console.log("Transmisión en vivo aún no disponible.", error));
+        audioPlayer.addEventListener('ended', () => {
+            if (!isPlayingStream) {
+                playFallback();
             }
-        }, 5000); // Intervalo de 5 segundos para verificar el estado de la transmisión
+        });
 
+        // Verificar la conexión a Internet
+        function checkConnection() {
+            if (navigator.onLine) {
+                if (!isPlayingStream) {
+                    playStream();
+                }
+            } else {
+                isPlayingStream = false;
+                playFallback();
+            }
+        }
+
+        // Escuchar eventos de conexión
+        window.addEventListener('online', checkConnection);
+        window.addEventListener('offline', checkConnection);
+
+        // Iniciar la reproducción con el stream
+        playStream();
     </script>
 </body>
 </html>
