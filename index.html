@@ -18,9 +18,10 @@
         function playStream() {
             audioPlayer.src = streamUrl;
             audioPlayer.load();
-            audioPlayer.play().catch(error => {
+            audioPlayer.play().then(() => {
+                isPlayingStream = true;
+            }).catch(error => {
                 console.error('Error al reproducir el stream:', error);
-                isPlayingStream = false;
                 playFallback();
             });
         }
@@ -28,21 +29,16 @@
         function playFallback() {
             audioPlayer.src = fallbackAudio;
             audioPlayer.load();
-            audioPlayer.play().catch(error => {
+            audioPlayer.play().then(() => {
+                isPlayingStream = false;
+            }).catch(error => {
                 console.error('Error al reproducir el archivo local:', error);
             });
         }
 
         audioPlayer.addEventListener('error', () => {
             console.error('Error en el reproductor de audio. Intentando cambiar a la pista de respaldo.');
-            isPlayingStream = false;
             playFallback();
-        });
-
-        audioPlayer.addEventListener('ended', () => {
-            if (!isPlayingStream) {
-                playFallback();
-            }
         });
 
         // Verificar la conexión a Internet
@@ -52,7 +48,6 @@
                     playStream();
                 }
             } else {
-                isPlayingStream = false;
                 playFallback();
             }
         }
