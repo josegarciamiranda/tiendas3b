@@ -1,63 +1,45 @@
 <!DOCTYPE html>
-<html lang="es">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reproductor de Audio</title>
+    <title>Reproductor de Audio Continuo</title>
 </head>
 <body>
-    <audio id="audioPlayer" controls autoplay></audio>
+    <audio id="myAudio" controls autoplay>
+        <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
+        <source src="AEROSUR1.mp3" type="audio/mpeg">
+    </audio>
 
     <script>
-        const audioPlayer = document.getElementById('audioPlayer');
-        const streamUrl = 'https://c26.radioboss.fm:8581/stream';
-        const fallbackAudio = 'AEROSUR1.mp3'; // Asegúrate de que este archivo esté en la misma carpeta que tu HTML
+        const audio = document.getElementById('myAudio');
+        const onlineSource = 'https://c26.radioboss.fm:8581/stream';
+        const offlineSource = 'AEROSUR1.mp3';
 
-        let isPlayingStream = true;
+        // Función para manejar el evento de error
+        audio.onerror = () => {
+            // Si ocurre un error, asumimos que es por falta de conexión y cambiamos a la fuente local
+            audio.src = offlineSource;
+            audio.load();
+            audio.play();
+        };
 
-        function playStream() {
-            audioPlayer.src = streamUrl;
-            audioPlayer.load();
-            audioPlayer.play().then(() => {
-                isPlayingStream = true;
-            }).catch(error => {
-                console.error('Error al reproducir el stream:', error);
-                playFallback();
-            });
-        }
-
-        function playFallback() {
-            audioPlayer.src = fallbackAudio;
-            audioPlayer.load();
-            audioPlayer.play().then(() => {
-                isPlayingStream = false;
-            }).catch(error => {
-                console.error('Error al reproducir el archivo local:', error);
-            });
-        }
-
-        audioPlayer.addEventListener('error', () => {
-            console.error('Error en el reproductor de audio. Intentando cambiar a la pista de respaldo.');
-            playFallback();
-        });
-
-        // Verificar la conexión a Internet
+        // Función para verificar la conexión (puedes reemplazarla con una más robusta si es necesario)
         function checkConnection() {
-            if (navigator.onLine) {
-                if (!isPlayingStream) {
-                    playStream();
-                }
-            } else {
-                playFallback();
-            }
+            fetch(onlineSource)
+                .then(response => {
+                    if (response.ok) {
+                        // Si hay conexión, cambiamos a la fuente en línea
+                        audio.src = onlineSource;
+                        audio.load();
+                        audio.play();
+                    }
+                })
+                .catch(error => {
+                    // Si hay un error, no hacemos nada, ya que el evento onerror ya se encargó de cambiar la fuente
+                });
         }
 
-        // Escuchar eventos de conexión
-        window.addEventListener('online', checkConnection);
-        window.addEventListener('offline', checkConnection);
-
-        // Iniciar la reproducción con el stream
-        playStream();
+        // Verificar la conexión cada 10 segundos
+        setInterval(checkConnection, 10000);
     </script>
 </body>
 </html>
