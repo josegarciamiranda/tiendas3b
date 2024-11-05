@@ -13,43 +13,48 @@
     const streamingURL = "https://c26.radioboss.fm:8581/stream";
     const localAudio = "AEROSUR1.mp3";
     const audioPlayer = document.getElementById("audioPlayer");
-    let isStreaming = true;
+    let isTryingToStream = true;
 
     function playStream() {
-        isStreaming = true;
+        isTryingToStream = true;
         audioPlayer.src = streamingURL;
-        audioPlayer.play().catch(() => playLocal()); // Si falla, va al archivo local
+        audioPlayer.play().catch(() => {
+            isTryingToStream = false;
+            playLocal();
+        });
     }
 
     function playLocal() {
-        isStreaming = false;
+        isTryingToStream = false;
         audioPlayer.src = localAudio;
-        audioPlayer.play().catch(() => setTimeout(playLocal, 5000)); // Reintenta el local cada 5s
+        audioPlayer.play().catch(() => {
+            console.error("Error al reproducir el archivo local");
+        });
     }
 
-    function checkConnection() {
+    function checkStreamingStatus() {
         fetch(streamingURL, { method: 'HEAD', mode: 'no-cors' })
-            .then(response => {
-                if (response.ok || response.status === 200) {
-                    if (!isStreaming) {
-                        playStream(); // Reconectar al streaming si está disponible
-                    }
+            .then(() => {
+                if (!isTryingToStream) {
+                    playStream();
                 }
             })
             .catch(() => {
-                if (isStreaming) {
-                    playLocal(); // Cambiar al local si falla el streaming
+                if (isTryingToStream) {
+                    playLocal();
                 }
             });
     }
 
     audioPlayer.addEventListener("error", () => {
-        if (isStreaming) playLocal(); // En caso de error en streaming, usa el local
+        if (isTryingToStream) {
+            playLocal();
+        }
     });
 
-    setInterval(checkConnection, 5000); // Verificar la conexión cada 5 segundos
+    setInterval(checkStreamingStatus, 5000); // Verificar la conexión al streaming cada 5 segundos
 
-    // Iniciar el streaming al cargar la página
+    // Inicia el streaming al cargar la página
     playStream();
 </script>
 
