@@ -1,45 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reproductor de Audio Continuo</title>
 </head>
 <body>
-    <audio id="myAudio" controls autoplay>
-        <source src="https://c26.radioboss.fm:8581/stream" type="audio/mpeg">
-        <source src="AEROSUR1.mp3" type="audio/mpeg">
-    </audio>
 
-    <script>
-        const audio = document.getElementById('myAudio');
-        const onlineSource = 'https://c26.radioboss.fm:8581/stream';
-        const offlineSource = 'AEROSUR1.mp3';
+<audio id="audioPlayer" autoplay></audio>
 
-        // Función para manejar el evento de error
-        audio.onerror = () => {
-            // Si ocurre un error, asumimos que es por falta de conexión y cambiamos a la fuente local
-            audio.src = offlineSource;
-            audio.load();
-            audio.play();
-        };
+<script>
+    const streamingURL = "https://c26.radioboss.fm:8581/stream";
+    const localAudio = "AEROSUR1.mp3";
+    const audioPlayer = document.getElementById("audioPlayer");
 
-        // Función para verificar la conexión (puedes reemplazarla con una más robusta si es necesario)
-        function checkConnection() {
-            fetch(onlineSource)
+    function playStream() {
+        audioPlayer.src = streamingURL;
+        audioPlayer.play().catch(() => playLocal()); // En caso de error, pasa al archivo local
+    }
+
+    function playLocal() {
+        audioPlayer.src = localAudio;
+        audioPlayer.play().catch(() => setTimeout(playStream, 5000)); // Intenta de nuevo en 5 segundos
+    }
+
+    audioPlayer.addEventListener("error", () => {
+        // Si hay un error, intenta con el archivo local
+        playLocal();
+    });
+
+    audioPlayer.addEventListener("playing", () => {
+        // Verifica cada 5 segundos si la conexión de streaming se ha restaurado
+        setInterval(() => {
+            fetch(streamingURL, { method: 'HEAD', mode: 'no-cors' })
                 .then(response => {
-                    if (response.ok) {
-                        // Si hay conexión, cambiamos a la fuente en línea
-                        audio.src = onlineSource;
-                        audio.load();
-                        audio.play();
+                    if (response.ok || response.status === 200) {
+                        // Cambia al streaming si está disponible
+                        if (audioPlayer.src !== streamingURL) {
+                            playStream();
+                        }
                     }
                 })
-                .catch(error => {
-                    // Si hay un error, no hacemos nada, ya que el evento onerror ya se encargó de cambiar la fuente
+                .catch(() => {
+                    // Si no hay conexión, sigue con el archivo local
+                    if (audioPlayer.src !== localAudio) {
+                        playLocal();
+                    }
                 });
-        }
+        }, 5000);
+    });
 
-        // Verificar la conexión cada 10 segundos
-        setInterval(checkConnection, 10000);
-    </script>
+    // Inicia el streaming al cargar la página
+    playStream();
+</script>
+
 </body>
 </html>
