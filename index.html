@@ -13,46 +13,49 @@
     const streamingURL = "https://c26.radioboss.fm:8581/stream";
     const localAudio = "AEROSUR1.mp3";
     const audioPlayer = document.getElementById("audioPlayer");
-    let isTryingToStream = true;
+    let isPlayingStreaming = true; // Bandera para controlar el estado de reproducción
 
     function playStream() {
-        isTryingToStream = true;
+        isPlayingStreaming = true;
         audioPlayer.src = streamingURL;
         audioPlayer.play().catch(() => {
-            isTryingToStream = false;
+            // Si falla, cambia a local
+            isPlayingStreaming = false;
             playLocal();
         });
     }
 
     function playLocal() {
-        isTryingToStream = false;
+        isPlayingStreaming = false;
         audioPlayer.src = localAudio;
         audioPlayer.play().catch(() => {
             console.error("Error al reproducir el archivo local");
         });
     }
 
-    function checkStreamingStatus() {
+    function checkConnection() {
         fetch(streamingURL, { method: 'HEAD', mode: 'no-cors' })
             .then(() => {
-                if (!isTryingToStream) {
+                if (!isPlayingStreaming) {
                     playStream();
                 }
             })
             .catch(() => {
-                if (isTryingToStream) {
+                if (isPlayingStreaming) {
                     playLocal();
                 }
             });
     }
 
+    // Detectar errores de reproducción y cambiar al archivo local si falla el streaming
     audioPlayer.addEventListener("error", () => {
-        if (isTryingToStream) {
+        if (isPlayingStreaming) {
             playLocal();
         }
     });
 
-    setInterval(checkStreamingStatus, 5000); // Verificar la conexión al streaming cada 5 segundos
+    // Verifica la conexión al streaming cada 5 segundos
+    setInterval(checkConnection, 5000);
 
     // Inicia el streaming al cargar la página
     playStream();
